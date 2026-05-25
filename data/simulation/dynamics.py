@@ -89,10 +89,9 @@ class SystemDynamics:
         cooling_factor: float = 3.0
     ):
         cooling = (
-            machine_state.cooling_efficiency *
-            machine_state.fan_speed *
-            machine_state.flow_rate
-        )
+            machine_state.flow_rate *
+            machine_state.cooling_efficiency
+)
 
         machine_state.core_temperature += (
             heating_factor *
