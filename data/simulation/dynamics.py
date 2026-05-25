@@ -1,7 +1,7 @@
 from data.simulation.state import MachineState
 
 
-class SystemDynamics:
+class Dynamics:
     def __init__(self):
         self.bounds = {
             "load": (0.0, 1.0),
@@ -174,4 +174,36 @@ class SystemDynamics:
 
         return machine_state
 
+    def update(
+        self,
+        machine_state: MachineState
+    ):
+        machine_state = self._update_fan_speed(
+            machine_state
+        )
 
+        machine_state = self._update_flow_rate(
+            machine_state
+        )
+
+        machine_state = self._update_pressure(
+            machine_state
+        )
+
+        machine_state = self._update_core_temperature(
+            machine_state
+        )
+
+        machine_state = self._update_wear(
+            machine_state
+        )
+
+        machine_state = self._update_health(
+            machine_state
+        )
+
+        machine_state = self._update_cooling_efficiency(
+            machine_state
+        )
+
+        return machine_state

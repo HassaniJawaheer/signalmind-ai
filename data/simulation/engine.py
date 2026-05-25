@@ -1,6 +1,6 @@
 from data.simulation.state import MachineState
-from data.simulation.dynamics import SystemDynamics
-from data.simulation.sensors import SystemSensors
+from data.simulation.dynamics import Dynamics
+from data.simulation.sensors import Sensors
 from data.scenarios.scenario import Scenario
 
 
@@ -11,16 +11,18 @@ class Engine:
         self.state = MachineState()
 
         self.dynamics = (
-            SystemDynamics()
+            Dynamics()
         )
 
         self.sensors = (
-            SystemSensors()
+            Sensors()
         )
 
         self.scenario = (
             Scenario()
         )
+
+        self.internal_history = []
 
     def run(
         self,
@@ -29,29 +31,35 @@ class Engine:
 
         history=[]
 
+        self.internal_history=[]
+
         for t in range(
             n_steps
         ):
 
-            self.state.load=(
+            self.state.load = (
                 self.scenario.load(
                     t
                 )
             )
 
-            self.state.cooling_efficiency=(
+            self.state.cooling_efficiency = (
                 self.scenario.cooling_efficiency(
                     t
                 )
             )
 
-            self.state=(
+            self.state = (
                 self.dynamics.update(
                     self.state
                 )
             )
 
-            sensors=(
+            self.internal_history.append(
+                self.state.to_dict()
+            )
+
+            sensors = (
                 self.sensors.generate(
                     self.state
                 )

@@ -3,7 +3,7 @@ from random import uniform
 from data.simulation.state import MachineState
 
 
-class SystemSensors:
+class Sensors:
     def __init__(self):
         self.bounds = {
             "vibration": (0.0, 1.0),
