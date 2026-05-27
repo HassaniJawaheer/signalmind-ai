@@ -6,6 +6,7 @@ from data.simulation.state import MachineState
 class Sensors:
     def __init__(self):
         self.bounds = {
+            "temperature": (20.0, 120.0),           
             "vibration": (0.0, 1.0),
             "power_consumption": (0.0, 1.0),
             "machine_activity": (0.0, 1.0),
@@ -38,9 +39,14 @@ class Sensors:
         self,
         machine_state: MachineState
     ):
+        temperature = (
+            machine_state.core_temperature +
+            self._noise("temperature")
+        )   
+
         return (
-            machine_state.core_temperature
-            + self._noise("temperature")
+            temperature,
+           "temperature"
         )
 
     def _vibration(
