@@ -1,7 +1,6 @@
 from detection.models import Detection
 from detection.rules import RULES
 
-
 class AnomalyDetector:
 
 

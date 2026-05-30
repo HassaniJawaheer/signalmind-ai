@@ -1,11 +1,7 @@
 from pathlib import Path
-
 import pandas as pd
 import matplotlib.pyplot as plt
-
-from data.scenarios.factory_machine import (
-    Factory
-)
+from data.scenarios.factory_machine import Factory
 
 
 N_STEPS = 1000

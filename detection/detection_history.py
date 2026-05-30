@@ -1,15 +1,8 @@
 import json
 from dataclasses import asdict
-
-from config.settings import (
-    SAVE_ALL_DETECTIONS,
-    DETECTION_HISTORY_PATH
-)
-
+from config.settings import SAVE_ALL_DETECTIONS,DETECTION_HISTORY_PATH
 
 class DetectionHistory:
-
-
     def __init__(self):
 
         self.path = DETECTION_HISTORY_PATH
