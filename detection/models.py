@@ -1,7 +1,13 @@
 from dataclasses import dataclass
 
+
 @dataclass
-class DetectionResult:
-    anomaly: bool
+class Detection:
+
+    trigger: bool
+
     score: int
-    reasons: list[str]
+
+    timestamp: int
+
+    sensor_values: dict

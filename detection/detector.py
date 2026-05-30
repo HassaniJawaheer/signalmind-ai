@@ -1,25 +1,53 @@
-from detection.scorer import RuleScorer
-from detection.models import DetectionResult
+from detection.models import Detection
+from detection.rules import RULES
 
 
 class AnomalyDetector:
 
+
     def __init__(
+
         self,
-        threshold:int=5
+
+        threshold=5
+
     ):
 
         self.threshold=threshold
-        self.scorer=RuleScorer()
 
 
-    def detect(self,data):
+    def detect(
 
-        score,reasons=self.scorer.compute(data)
+        self,
 
-        return DetectionResult(
+        sensor_values:dict,
 
-            anomaly=score>=self.threshold,
+        timestamp:int
+
+    ):
+
+
+        score=0
+
+
+        for rule in RULES:
+
+            score += rule(
+
+                sensor_values
+            )
+
+
+        trigger=score>=self.threshold
+
+
+        return Detection(
+
+            trigger=trigger,
+
             score=score,
-            reasons=reasons
+
+            timestamp=timestamp,
+
+            sensor_values=sensor_values
         )

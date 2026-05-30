@@ -1,55 +1,74 @@
+from config.settings import (
+    HIGH_TEMPERATURE_THRESHOLD,
+    HIGH_VIBRATION_THRESHOLD,
+    LOW_PRESSURE_THRESHOLD,
+    LOW_FLOW_RATE_THRESHOLD,
+    HIGH_TEMPERATURE_WEIGHT,
+    HIGH_VIBRATION_WEIGHT,
+    LOW_PRESSURE_WEIGHT,
+    LOW_FLOW_RATE_WEIGHT,
+    COOLING_COMBINATION_WEIGHT
+)
+
+
 def high_temperature(data):
 
-    temp=data["temperature"]
+    if data["temperature"] > HIGH_TEMPERATURE_THRESHOLD:
 
-    if temp>85:
-        return True,2,"high_temperature"
+        return HIGH_TEMPERATURE_WEIGHT
 
-    return False,0,None
+    return 0
 
 
 def high_vibration(data):
 
-    if data["vibration"]>0.8:
-        return True,2,"high_vibration"
+    if data["vibration"] > HIGH_VIBRATION_THRESHOLD:
 
-    return False,0,None
+        return HIGH_VIBRATION_WEIGHT
+
+    return 0
 
 
 def low_pressure(data):
 
-    if data["pressure"]<0.25:
-        return True,2,"low_pressure"
+    if data["pressure"] < LOW_PRESSURE_THRESHOLD:
 
-    return False,0,None
+        return LOW_PRESSURE_WEIGHT
 
-
-def low_flow(data):
-
-    if data["flow_rate"]<0.25:
-        return True,1,"low_flow"
-
-    return False,0,None
+    return 0
 
 
-def cooling_failure_combo(data):
+def low_flow_rate(data):
+
+    if data["flow_rate"] < LOW_FLOW_RATE_THRESHOLD:
+
+        return LOW_FLOW_RATE_WEIGHT
+
+    return 0
+
+
+def cooling_combination(data):
 
     if (
-        data["temperature"]>85
-        and data["pressure"]<0.25
-        and data["flow_rate"]<0.25
+        data["temperature"] > HIGH_TEMPERATURE_THRESHOLD
+        and data["pressure"] < LOW_PRESSURE_THRESHOLD
+        and data["flow_rate"] < LOW_FLOW_RATE_THRESHOLD
     ):
 
-        return True,3,"cooling_failure_pattern"
+        return COOLING_COMBINATION_WEIGHT
 
-    return False,0,None
+    return 0
 
 
-RULES=[
+RULES = [
 
     high_temperature,
+
     high_vibration,
+
     low_pressure,
-    low_flow,
-    cooling_failure_combo
+
+    low_flow_rate,
+
+    cooling_combination
 ]
