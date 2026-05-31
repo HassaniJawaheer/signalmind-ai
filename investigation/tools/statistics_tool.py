@@ -3,10 +3,7 @@ import pandas as pd
 
 class StatisticsTool:
 
-    def compute(
-        self,
-        df: pd.DataFrame,
-    ) -> dict:
+    def compute(self, df: pd.DataFrame) -> dict:
 
         sensors = [
             "temperature",
@@ -23,10 +20,7 @@ class StatisticsTool:
 
             values = df[sensor]
 
-            slope = (
-                values.iloc[-1]
-                - values.iloc[0]
-            )
+            slope = values.iloc[-1] - values.iloc[0]
 
             results[sensor] = {
                 "mean": float(values.mean()),
