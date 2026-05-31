@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import datetime
 
 
 @dataclass
@@ -8,6 +9,6 @@ class Detection:
 
     score: int
 
-    timestamp: int
+    timestamp: datetime.datetime
 
     sensor_values: dict

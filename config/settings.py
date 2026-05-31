@@ -20,4 +20,4 @@ COOLING_COMBINATION_WEIGHT = 3
 ANOMALY_SCORE_THRESHOLD = 5
 SAVE_ALL_DETECTIONS = False
 
-DETECTION_HISTORY_PATH = "experiments/jsonl/detection_history.jsonl"
+DETECTION_HISTORY_PATH = "experiments/outputs/jsonl/detection_history.jsonl"
