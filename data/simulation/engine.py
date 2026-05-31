@@ -5,68 +5,54 @@ from data.scenarios.scenario import Scenario
 
 
 class Engine:
-    def __init__(
-        self
-    ):
+    def __init__(self):
         self.state = MachineState()
 
-        self.dynamics = (
-            Dynamics()
-        )
+        self.dynamics = Dynamics()
+        self.sensors = Sensors()
+        self.scenario = Scenario()
 
-        self.sensors = (
-            Sensors()
-        )
-
-        self.scenario = (
-            Scenario()
-        )
-
+        self.t = 0
         self.internal_history = []
+
+    def step(self):
+        self.state.load = self.scenario.load(
+            self.t
+        )
+
+        self.state.cooling_efficiency = (
+            self.scenario.cooling_efficiency(
+                self.t
+            )
+        )
+
+        self.state = self.dynamics.update(
+            self.state
+        )
+
+        self.internal_history.append(
+            self.state.to_dict()
+        )
+
+        sensors = self.sensors.generate(
+            self.state
+        )
+
+        self.t += 1
+
+        return sensors
 
     def run(
         self,
         n_steps: int
     ):
+        history = []
 
-        history=[]
+        self.internal_history = []
 
-        self.internal_history=[]
-
-        for t in range(
-            n_steps
-        ):
-
-            self.state.load = (
-                self.scenario.load(
-                    t
-                )
-            )
-
-            self.state.cooling_efficiency = (
-                self.scenario.cooling_efficiency(
-                    t
-                )
-            )
-
-            self.state = (
-                self.dynamics.update(
-                    self.state
-                )
-            )
-
-            self.internal_history.append(
-                self.state.to_dict()
-            )
-
-            sensors = (
-                self.sensors.generate(
-                    self.state
-                )
-            )
-
+        for _ in range(n_steps):
             history.append(
-                sensors
+                self.step()
             )
 
         return history

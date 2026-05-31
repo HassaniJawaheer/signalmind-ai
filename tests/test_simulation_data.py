@@ -1,41 +1,28 @@
 from pathlib import Path
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
+
 from data.scenarios.factory_machine import Factory
 
 
 N_STEPS = 1000
 
+CSV_DIR = Path("experiments/outputs/csv")
+PLOTS_DIR = Path("experiments/outputs/plots")
+
+CSV_DIR.mkdir(parents=True, exist_ok=True)
+PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 machine = Factory.create()
 
-data = machine.run(
-    n_steps=N_STEPS
-)
-
-
 external_df = pd.DataFrame(
-    data
+    machine.run(N_STEPS)
 )
-
-
-Path(
-    "experiments/outputs/csv"
-).mkdir(
-    parents=True,
-    exist_ok=True
-)
-
-Path(
-    "experiments/outputs/plots"
-).mkdir(
-    parents=True,
-    exist_ok=True
-)
-
 
 external_df.to_csv(
-    "experiments/outputs/csv/simulation.csv",
+    CSV_DIR / "simulation.csv",
     index=False
 )
 
@@ -49,7 +36,6 @@ external_columns = [
     "flow_rate"
 ]
 
-
 internal_columns = [
     "load",
     "health",
@@ -62,72 +48,52 @@ internal_columns = [
 ]
 
 
-external_normalized = (
-    external_df[external_columns]
-    - external_df[external_columns].min()
-) / (
-    external_df[external_columns].max()
-    - external_df[external_columns].min()
-)
-
-
-plt.figure(
-    figsize=(16,8)
-)
-
-for column in external_columns:
-
-    plt.plot(
-        external_normalized[column],
-        label=column
+def normalize(df, columns):
+    return (
+        df[columns] - df[columns].min()
+    ) / (
+        df[columns].max() - df[columns].min()
     )
 
-plt.legend()
 
-plt.title(
-    "External normalized signals"
+def plot_signals(df, columns, title, output_file):
+    plt.figure(figsize=(16, 8))
+
+    for column in columns:
+        plt.plot(df[column], label=column)
+
+    plt.legend()
+    plt.title(title)
+
+    plt.savefig(output_file)
+    plt.close()
+
+
+external_normalized = normalize(
+    external_df,
+    external_columns
 )
 
-plt.savefig(
-    "experiments/outputs/plots/external_normalized_signals.png"
+plot_signals(
+    external_normalized,
+    external_columns,
+    "External normalized signals",
+    PLOTS_DIR / "external_normalized_signals.png"
 )
 
-plt.close()
 
-
-internal_history = pd.DataFrame(
+internal_df = pd.DataFrame(
     machine.internal_history
 )
 
-
-internal_normalized = (
-    internal_history[internal_columns]
-    - internal_history[internal_columns].min()
-) / (
-    internal_history[internal_columns].max()
-    - internal_history[internal_columns].min()
+internal_normalized = normalize(
+    internal_df,
+    internal_columns
 )
 
-
-plt.figure(
-    figsize=(16,8)
+plot_signals(
+    internal_normalized,
+    internal_columns,
+    "Internal normalized signals",
+    PLOTS_DIR / "internal_normalized_signals.png"
 )
-
-for column in internal_columns:
-
-    plt.plot(
-        internal_normalized[column],
-        label=column
-    )
-
-plt.legend()
-
-plt.title(
-    "Internal normalized signals"
-)
-
-plt.savefig(
-    "experiments/outputs/plots/internal_normalized_signals.png"
-)
-
-plt.close()

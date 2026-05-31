@@ -23,11 +23,7 @@ class Dynamics:
         machine_state: MachineState,
         new_load: float
     ):
-        machine_state.load = self._clamp(
-            new_load,
-            "load"
-        )
-
+        machine_state.load = self._clamp(new_load, "load")
         return machine_state
 
     def _update_health(
@@ -37,16 +33,12 @@ class Dynamics:
         health_temp_factor: float = 0.0005
     ):
         machine_state.health -= (
-            health_wear_factor *
-            machine_state.wear
+            health_wear_factor * machine_state.wear
         )
 
         machine_state.health -= (
             health_temp_factor *
-            max(
-                0,
-                machine_state.core_temperature - 70
-            )
+            max(0, machine_state.core_temperature - 70)
         )
 
         machine_state.health = self._clamp(
@@ -63,16 +55,12 @@ class Dynamics:
         wear_temp_factor: float = 0.001
     ):
         machine_state.wear += (
-            wear_load_factor *
-            machine_state.load
+            wear_load_factor * machine_state.load
         )
 
         machine_state.wear += (
             wear_temp_factor *
-            max(
-                0,
-                machine_state.core_temperature - 70
-            )
+            max(0, machine_state.core_temperature - 70)
         )
 
         machine_state.wear = self._clamp(
@@ -91,16 +79,14 @@ class Dynamics:
         cooling = (
             machine_state.flow_rate *
             machine_state.cooling_efficiency
-)
+        )
 
         machine_state.core_temperature += (
-            heating_factor *
-            machine_state.load
+            heating_factor * machine_state.load
         )
 
         machine_state.core_temperature -= (
-            cooling_factor *
-            cooling
+            cooling_factor * cooling
         )
 
         machine_state.core_temperature = self._clamp(
@@ -163,8 +149,7 @@ class Dynamics:
         wear_factor: float = 0.0005
     ):
         machine_state.cooling_efficiency -= (
-            wear_factor *
-            machine_state.wear
+            wear_factor * machine_state.wear
         )
 
         machine_state.cooling_efficiency = self._clamp(
@@ -174,36 +159,13 @@ class Dynamics:
 
         return machine_state
 
-    def update(
-        self,
-        machine_state: MachineState
-    ):
-        machine_state = self._update_fan_speed(
-            machine_state
-        )
-
-        machine_state = self._update_flow_rate(
-            machine_state
-        )
-
-        machine_state = self._update_pressure(
-            machine_state
-        )
-
-        machine_state = self._update_core_temperature(
-            machine_state
-        )
-
-        machine_state = self._update_wear(
-            machine_state
-        )
-
-        machine_state = self._update_health(
-            machine_state
-        )
-
-        machine_state = self._update_cooling_efficiency(
-            machine_state
-        )
+    def update(self, machine_state: MachineState):
+        machine_state = self._update_fan_speed(machine_state)
+        machine_state = self._update_flow_rate(machine_state)
+        machine_state = self._update_pressure(machine_state)
+        machine_state = self._update_core_temperature(machine_state)
+        machine_state = self._update_wear(machine_state)
+        machine_state = self._update_health(machine_state)
+        machine_state = self._update_cooling_efficiency(machine_state)
 
         return machine_state
