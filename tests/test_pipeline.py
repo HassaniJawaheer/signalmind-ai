@@ -6,6 +6,7 @@ from data.scenarios.factory_machine import Factory
 
 from detection.detector import AnomalyDetector
 
+from investigation.models.context import Context
 from investigation.models.request import Request
 from investigation.models.results import InvestigationResult
 from investigation.models.tools import Tool
@@ -44,23 +45,25 @@ if not detections:
 
 detection = detections[0]
 
-print(f"Detection found at {detection.timestamp}")
+request = Request(
+    timestamp=detection.timestamp,
+    sensor_values=detection.sensor_values
+)
 
-request = Request(timestamp=detection.timestamp, sensor_values=detection.sensor_values)
+context = Context(
+    request=request
+)
 
-history_tool = HistoryTool(csv_path=CSV_DIR / "simulation.csv")
+history_tool = HistoryTool(
+    csv_path=CSV_DIR / "simulation.csv"
+)
 
-history_df = history_tool.get_history(timestamp=request.timestamp, n_points=100)
+history_df = history_tool.get_history(
+    timestamp=request.timestamp,
+    n_points=100
+)
 
-print(f"History rows: {len(history_df)}")
-
-statistics_tool = StatisticsTool()
-
-statistics = statistics_tool.compute(history_df)
-
-result = InvestigationResult(request=request)
-
-result.tool_calls.append(
+context.tool_calls.append(
     Tool(
         tool_name="history_tool",
         tool_input={
@@ -73,7 +76,13 @@ result.tool_calls.append(
     )
 )
 
-result.tool_calls.append(
+statistics_tool = StatisticsTool()
+
+statistics = statistics_tool.compute(
+    history_df
+)
+
+context.tool_calls.append(
     Tool(
         tool_name="statistics_tool",
         tool_input={},
@@ -81,8 +90,17 @@ result.tool_calls.append(
     )
 )
 
+result = InvestigationResult(
+    request=context.request,
+    tool_calls=context.tool_calls,
+    final_conclusion=context.final_conclusion
+)
+
 print("\n========== REQUEST ==========\n")
-print(request)
+print(context.request)
+
+print("\n========== TOOL CALLS ==========\n")
+print(context.tool_calls)
 
 print("\n========== STATISTICS ==========\n")
 
@@ -91,7 +109,11 @@ for sensor, values in statistics.items():
     print(sensor)
 
     for key, value in values.items():
+
         print(f"  {key}: {value}")
+
+print("\n========== CONTEXT ==========\n")
+print(context)
 
 print("\n========== RESULT ==========\n")
 print(result)
