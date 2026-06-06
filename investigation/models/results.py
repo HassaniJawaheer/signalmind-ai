@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 
 from .request import Request
 from .tools import Tool
@@ -9,4 +9,5 @@ from .tools import Tool
 class InvestigationResult:
     request: Request
     tool_calls: List[Tool] = field(default_factory=list)
-    final_conclusion: str = ""
+
+    final_conclusion: Optional[str] = None

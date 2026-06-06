@@ -1,5 +1,5 @@
 from random import uniform
-
+from datetime import datetime
 from data.simulation.state import MachineState
 
 
@@ -89,5 +89,6 @@ class Sensors:
             "power_consumption": self._power_consumption(machine_state),
             "machine_activity": self._machine_activity(machine_state),
             "pressure": self._pressure(machine_state),
-            "flow_rate": self._flow_rate(machine_state)
+            "flow_rate": self._flow_rate(machine_state),
+            "timestamp": str(datetime.now())
         }

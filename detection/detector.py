@@ -1,6 +1,5 @@
 from detection.models import Detection
 from detection.rules import RULES
-import datetime
 
 class AnomalyDetector:
 
@@ -10,7 +9,7 @@ class AnomalyDetector:
         self.threshold=threshold
 
 
-    def detect(self, sensor_values:dict, timestamp:datetime.datetime):
+    def detect(self, sensor_values:dict):
         score=0
 
         for rule in RULES:
@@ -28,7 +27,7 @@ class AnomalyDetector:
 
             score=score,
 
-            timestamp=timestamp,
+            timestamp=sensor_values["timestamp"],
 
             sensor_values=sensor_values
         )

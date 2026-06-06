@@ -14,18 +14,11 @@ PLOTS_DIR = Path("experiments/outputs/plots")
 CSV_DIR.mkdir(parents=True, exist_ok=True)
 PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
-
 machine = Factory.create()
 
-external_df = pd.DataFrame(
-    machine.run(N_STEPS)
-)
+external_df = pd.DataFrame(machine.run(N_STEPS))
 
-external_df.to_csv(
-    CSV_DIR / "simulation.csv",
-    index=False
-)
-
+external_df.to_csv(CSV_DIR / "simulation.csv", index=False)
 
 external_columns = [
     "temperature",
@@ -49,9 +42,7 @@ internal_columns = [
 
 
 def normalize(df, columns):
-    return (
-        df[columns] - df[columns].min()
-    ) / (
+    return (df[columns] - df[columns].min()) / (
         df[columns].max() - df[columns].min()
     )
 
@@ -69,10 +60,7 @@ def plot_signals(df, columns, title, output_file):
     plt.close()
 
 
-external_normalized = normalize(
-    external_df,
-    external_columns
-)
+external_normalized = normalize(external_df, external_columns)
 
 plot_signals(
     external_normalized,
@@ -81,15 +69,9 @@ plot_signals(
     PLOTS_DIR / "external_normalized_signals.png"
 )
 
+internal_df = pd.DataFrame(machine.internal_history)
 
-internal_df = pd.DataFrame(
-    machine.internal_history
-)
-
-internal_normalized = normalize(
-    internal_df,
-    internal_columns
-)
+internal_normalized = normalize(internal_df, internal_columns)
 
 plot_signals(
     internal_normalized,
