@@ -1,25 +1,24 @@
 import pandas as pd
+from config.settings import SENSORS
+from investigation.tools.base_tool import BaseTool
 
 
-class StatisticsTool:
-
-    def compute(self, df: pd.DataFrame) -> dict:
-
-        sensors = [
-            "temperature",
-            "vibration",
-            "power_consumption",
-            "machine_activity",
-            "pressure",
-            "flow_rate",
-        ]
+class StatisticsTool(BaseTool):
+    
+    @property
+    def name(self) -> str:
+        return "statistics"
+    
+    @property
+    def description(self) -> str:
+        return "Compute statistics on sensor history."
+    
+    def run(self, df: pd.DataFrame) -> dict:
 
         results = {}
 
-        for sensor in sensors:
-
+        for sensor in SENSORS:
             values = df[sensor]
-
             slope = values.iloc[-1] - values.iloc[0]
 
             results[sensor] = {

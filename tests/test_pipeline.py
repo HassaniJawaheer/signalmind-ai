@@ -9,7 +9,7 @@ from detection.detector import AnomalyDetector
 from investigation.models.context import Context
 from investigation.models.request import Request
 from investigation.models.results import InvestigationResult
-from investigation.models.tools import Tool
+from investigation.models.tool_call import ToolCall
 
 from investigation.tools.history_tool import HistoryTool
 from investigation.tools.statistics_tool import StatisticsTool
@@ -58,13 +58,13 @@ history_tool = HistoryTool(
     csv_path=CSV_DIR / "simulation.csv"
 )
 
-history_df = history_tool.get_history(
+history_df = history_tool.run(
     timestamp=request.timestamp,
     n_points=100
 )
 
 context.tool_calls.append(
-    Tool(
+    ToolCall(
         tool_name="history_tool",
         tool_input={
             "timestamp": request.timestamp,
@@ -78,12 +78,12 @@ context.tool_calls.append(
 
 statistics_tool = StatisticsTool()
 
-statistics = statistics_tool.compute(
+statistics = statistics_tool.run(
     history_df
 )
 
 context.tool_calls.append(
-    Tool(
+    ToolCall(
         tool_name="statistics_tool",
         tool_input={},
         tool_output=statistics

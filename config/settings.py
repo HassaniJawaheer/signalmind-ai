@@ -21,3 +21,12 @@ ANOMALY_SCORE_THRESHOLD = 5
 SAVE_ALL_DETECTIONS = False
 
 DETECTION_HISTORY_PATH = "experiments/outputs/jsonl/detection_history.jsonl"
+
+SENSORS = [
+    "temperature",
+    "vibration",
+    "power_consumption",
+    "machine_activity",
+    "pressure",
+    "flow_rate",
+]
