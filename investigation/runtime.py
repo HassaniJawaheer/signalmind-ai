@@ -41,6 +41,8 @@ class InvestigationRuntime:
                     )
                 )
 
+                context.working_memory[action.tool_name] = tool_output
+
                 continue
 
             raise ValueError(

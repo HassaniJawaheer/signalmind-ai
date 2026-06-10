@@ -1,11 +1,12 @@
 from pathlib import Path
 import pandas as pd
+
 from data.scenarios.factory_machine import Factory
 from detection.detector import AnomalyDetector
+from investigation.agents.fake_agent import FakeAgent
 from investigation.models.context import Context
 from investigation.models.request import Request
-from investigation.models.results import InvestigationResult
-from investigation.models.tool_call import ToolCall
+from investigation.runtime import InvestigationRuntime
 from investigation.tools.history_tool import HistoryTool
 from investigation.tools.statistics_tool import StatisticsTool
 from investigation.tools.tool_registry import ToolRegistry
@@ -22,7 +23,7 @@ data = machine.run(n_steps=N_STEPS)
 
 external_df = pd.DataFrame(data)
 
-external_df.to_csv(CSV_DIR / "simulation.csv",index=False)
+external_df.to_csv(CSV_DIR / "simulation.csv", index=False)
 
 detector = AnomalyDetector()
 
@@ -50,65 +51,34 @@ context = Context(request=request)
 registry = ToolRegistry()
 
 registry.register(HistoryTool(csv_path=CSV_DIR / "simulation.csv"))
-
 registry.register(StatisticsTool())
+
+agent = FakeAgent()
+
+runtime = InvestigationRuntime(
+    agent=agent,
+    registry=registry
+)
 
 print("\n========== AVAILABLE TOOLS ==========\n")
 
 print(registry.describe_tools())
 
-history_tool = registry.get("history")
-
-history_df = history_tool.run(timestamp=request.timestamp, n_points=100)
-
-context.tool_calls.append(
-    ToolCall(
-        tool_name="history",
-        tool_input={
-            "timestamp": request.timestamp,
-            "n_points": 100,
-        },
-        tool_output={
-            "rows": len(history_df)
-        }
-    )
-)
-
-statistics_tool = registry.get("statistics")
-
-statistics = statistics_tool.run(history_df)
-
-context.tool_calls.append(
-    ToolCall(
-        tool_name="statistics",
-        tool_input={},
-        tool_output=statistics
-    )
-)
-
-result = InvestigationResult(
-    request=context.request,
-    tool_calls=context.tool_calls,
-    final_conclusion=context.final_conclusion
-)
-
 print("\n========== REQUEST ==========\n")
 
-print(context.request)
+print(request)
+
+print("\n========== RUNTIME EXECUTION ==========\n")
+
+result = runtime.run(context)
 
 print("\n========== TOOL CALLS ==========\n")
 
-print(context.tool_calls)
+for tool_call in result.tool_calls:
 
-print("\n========== STATISTICS ==========\n")
-
-for sensor, values in statistics.items():
-
-    print(sensor)
-
-    for key, value in values.items():
-
-        print(f" {key}: {value}")
+    print(tool_call.tool_name)
+    print(tool_call.tool_input)
+    print(type(tool_call.tool_output))
 
 print("\n========== CONTEXT ==========\n")
 
