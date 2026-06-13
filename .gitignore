@@ -16,3 +16,6 @@ experiments/
 # Logs
 *.log
 logs/
+
+# environments variable
+.env
