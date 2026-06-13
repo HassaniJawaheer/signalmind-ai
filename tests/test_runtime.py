@@ -23,7 +23,7 @@ data = machine.run(n_steps=N_STEPS)
 
 external_df = pd.DataFrame(data)
 
-external_df.to_csv(CSV_DIR / "simulation.csv", index=False)
+external_df.to_csv(CSV_DIR / "simulation.csv",index=False)
 
 detector = AnomalyDetector()
 
@@ -51,14 +51,12 @@ context = Context(request=request)
 registry = ToolRegistry()
 
 registry.register(HistoryTool(csv_path=CSV_DIR / "simulation.csv"))
-registry.register(StatisticsTool())
+
+registry.register(StatisticsTool(csv_path=CSV_DIR / "simulation.csv"))
 
 agent = FakeAgent()
 
-runtime = InvestigationRuntime(
-    agent=agent,
-    registry=registry
-)
+runtime = InvestigationRuntime(agent=agent, registry=registry)
 
 print("\n========== AVAILABLE TOOLS ==========\n")
 
@@ -77,12 +75,26 @@ print("\n========== TOOL CALLS ==========\n")
 for tool_call in result.tool_calls:
 
     print(tool_call.tool_name)
-    print(tool_call.tool_input)
-    print(type(tool_call.tool_output))
 
-print("\n========== CONTEXT ==========\n")
+print("\n========== WORKING MEMORY ==========\n")
 
-print(context)
+print(context.working_memory.keys())
+
+print("\n========== OBSERVATIONS ==========\n")
+
+for observation in result.observations:
+
+    print(observation)
+
+print("\n========== HYPOTHESES ==========\n")
+
+for hypothesis in result.hypotheses:
+
+    print(hypothesis)
+
+print("\n========== FINAL CONCLUSION ==========\n")
+
+print(result.final_conclusion)
 
 print("\n========== RESULT ==========\n")
 

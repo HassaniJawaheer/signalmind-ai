@@ -15,6 +15,10 @@ class InvestigationRuntime:
 
             action = self.agent.decide(context)
 
+            context.observations.extend(action.observations)
+
+            context.hypotheses.extend(action.hypotheses)
+
             if action.action_type == "finish":
 
                 context.final_conclusion = action.final_conclusion
@@ -45,10 +49,6 @@ class InvestigationRuntime:
 
                 continue
 
-            raise ValueError(
-                f"Unknown action type: {action.action_type}"
-            )
+            raise ValueError(f"Unknown action type: {action.action_type}")
 
-        raise RuntimeError(
-            f"Maximum number of iterations ({self.max_iterations}) reached."
-        )
+        raise RuntimeError(f"Maximum number of iterations ({self.max_iterations}) reached.")

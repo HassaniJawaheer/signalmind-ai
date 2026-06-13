@@ -15,6 +15,8 @@ class FakeAgent:
                     "timestamp": context.request.timestamp,
                     "n_points": 100,
                 },
+                observations=[],
+                hypotheses=[],
             )
 
         if "statistics" not in context.working_memory:
@@ -23,14 +25,27 @@ class FakeAgent:
                 action_type="call_tool",
                 tool_name="statistics",
                 tool_input={
-                    "df": context.working_memory["history"]
+                    "timestamp": context.request.timestamp,
+                    "n_points": 100,
                 },
+                observations=[
+                    "Historical sensor values have been retrieved."
+                ],
+                hypotheses=[],
             )
 
         return AgentAction(
             action_type="finish",
+            tool_name=None,
+            tool_input={},
+            observations=[
+                "Descriptive statistics have been computed."
+            ],
+            hypotheses=[
+                "Cooling system degradation suspected."
+            ],
             final_conclusion=(
                 "Historical data and descriptive statistics "
-                "have been collected. Investigation completed."
+                "suggest a cooling system degradation."
             ),
         )
