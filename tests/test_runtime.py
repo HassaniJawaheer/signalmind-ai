@@ -3,7 +3,7 @@ import pandas as pd
 
 from data.scenarios.factory_machine import Factory
 from detection.detector import AnomalyDetector
-from investigation.agents.fake_agent import FakeAgent
+from investigation.agents.llm_agent import LLMAgent
 from investigation.models.context import Context
 from investigation.models.request import Request
 from investigation.runtime import InvestigationRuntime
@@ -48,19 +48,19 @@ request = Request(
 
 context = Context(request=request)
 
-registry = ToolRegistry()
+tool_registry = ToolRegistry()
 
-registry.register(HistoryTool(csv_path=CSV_DIR / "simulation.csv"))
+tool_registry.register(HistoryTool(csv_path=CSV_DIR / "simulation.csv"))
 
-registry.register(StatisticsTool(csv_path=CSV_DIR / "simulation.csv"))
+tool_registry.register(StatisticsTool(csv_path=CSV_DIR / "simulation.csv"))
 
-agent = FakeAgent()
+agent = LLMAgent(tool_registry=tool_registry)
 
-runtime = InvestigationRuntime(agent=agent, registry=registry)
+runtime = InvestigationRuntime(agent=agent, registry=tool_registry)
 
 print("\n========== AVAILABLE TOOLS ==========\n")
 
-print(registry.describe_tools())
+print(tool_registry.describe_tools())
 
 print("\n========== REQUEST ==========\n")
 
@@ -73,12 +73,7 @@ result = runtime.run(context)
 print("\n========== TOOL CALLS ==========\n")
 
 for tool_call in result.tool_calls:
-
     print(tool_call.tool_name)
-
-print("\n========== WORKING MEMORY ==========\n")
-
-print(context.working_memory.keys())
 
 print("\n========== OBSERVATIONS ==========\n")
 
