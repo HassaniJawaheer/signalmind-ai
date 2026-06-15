@@ -2,3 +2,4 @@ pandas
 matplotlib
 dotenv
 requests
+langgraph
