@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from .request import Request
 from .tool_call import ToolCall
+from .agent_action import AgentAction
 
 
 @dataclass
@@ -12,3 +13,4 @@ class Context:
     hypotheses: List[str] = field(default_factory=list)
     working_memory: Dict[str, Any] = field(default_factory=dict)
     final_conclusion: Optional[str] = None
+    current_action: Optional[AgentAction] = None

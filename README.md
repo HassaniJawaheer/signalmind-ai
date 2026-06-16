@@ -115,9 +115,10 @@ La clé API n'est pas fournie dans le dépôt.
 Depuis la racine du projet :
 
 ```bash
-PYTHONPATH=. python tests/test_runtime.py
+PYTHONPATH=. python tests/test_investigation.py
 ```
-## État actuel du projet
+
+## État du projet
 
 Le projet dispose actuellement :
 
@@ -125,7 +126,8 @@ Le projet dispose actuellement :
 - d'un détecteur d'anomalies déterministe ;
 - d'un agent d'investigation basé sur un LLM ;
 - d'un système d'exécution d'outils ;
-- d'un système de prompt structuré et d'un parser JSON.
+- d'un système de prompt structuré et d'un parser JSON ;
+- d'un workflow LangGraph est compmet est fonctionelle ;
 
-L'intégration de LangGraph pour remplacer le **runtime maison** est la prochaine étape du projet.
+Les prochaines évolutions porteront principalement sur la gestion de la mémoire et l'amélioration des outils d'investigation.
 
