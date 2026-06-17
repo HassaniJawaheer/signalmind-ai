@@ -110,24 +110,17 @@ GROQ_MAX_TOKENS=4096
 
 La clé API n'est pas fournie dans le dépôt.
 
-## Lancer un premier test
+## Lancer une simulation
 
 Depuis la racine du projet :
 
 ```bash
-PYTHONPATH=. python tests/test_investigation.py
+PYTHONPATH=. python main.py
 ```
 
+Le système exécute alors les différentes étapes du workflow : simulation, detection et investigation.
+
 ## État du projet
-
-Le projet dispose actuellement :
-
-- d'un simulateur de données industrielles ;
-- d'un détecteur d'anomalies déterministe ;
-- d'un agent d'investigation basé sur un LLM ;
-- d'un système d'exécution d'outils ;
-- d'un système de prompt structuré et d'un parser JSON ;
-- d'un workflow LangGraph est compmet est fonctionelle ;
 
 Les prochaines évolutions porteront principalement sur la gestion de la mémoire et l'amélioration des outils d'investigation.
 

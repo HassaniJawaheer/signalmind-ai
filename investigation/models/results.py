@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
-
 from .request import Request
 from .tool_call import ToolCall
 
