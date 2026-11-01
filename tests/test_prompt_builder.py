@@ -1,3 +1,4 @@
+from data.measurement_history import MeasurementHistory
 from investigation.models.context import Context
 from investigation.models.request import Request
 from investigation.models.tool_call import ToolCall
@@ -8,7 +9,7 @@ from investigation.tools.statistics_tool import StatisticsTool
 
 
 request = Request(
-    timestamp="2026-06-13 15:00:00",
+    timestamp="2026-06-13T15:00:00+00:00",
     sensor_values={
         "temperature": 119.8,
         "vibration": 0.99,
@@ -58,10 +59,11 @@ context.tool_calls.extend(
 )
 
 tool_registry = ToolRegistry()
+history = MeasurementHistory("dummy.jsonl")
 
-tool_registry.register(HistoryTool(csv_path="dummy.csv"))
+tool_registry.register(HistoryTool(history=history))
 
-tool_registry.register(StatisticsTool(csv_path="dummy.csv"))
+tool_registry.register(StatisticsTool(history=history))
 
 builder = PromptBuilder(tool_registry=tool_registry)
 

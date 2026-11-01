@@ -1,53 +1,43 @@
-from pathlib import Path
-
-import pandas as pd
+from statistics import mean, stdev
 
 from config.settings import SENSORS
+from data.measurement_history import MeasurementHistory
 from investigation.tools.base_tool import BaseTool
+from investigation.tools.history_tool import HistoryTool
 
 
 class StatisticsTool(BaseTool):
-
     @property
     def name(self) -> str:
         return "statistics"
 
     @property
     def description(self) -> str:
-        return "Compute statistics on sensor history."
+        return (
+            "Compute mean, sample std (null for a single measurement), min, max "
+            "and slope (legacy name for last minus first, not a time-normalized slope). "
+            "Includes actual window count, start and end. "
+            + HistoryTool(self.history).description
+        )
 
-    def __init__(self, csv_path: Path):
-        self.csv_path = csv_path
+    def __init__(self, history: MeasurementHistory):
+        self.history = history
 
-    def run(self, timestamp: str, n_points: int = 100) -> dict:
-
-        df = pd.read_csv(self.csv_path)
-
-        index = df[df["timestamp"] == timestamp].index
-
-        if len(index) == 0:
-            raise ValueError(f"Timestamp {timestamp} not found.")
-
-        end_idx = index[0]
-
-        start_idx = max(0,end_idx - n_points)
-
-        history_df = df.iloc[start_idx:end_idx + 1]
-
-        results = {}
-
+    def run(self, timestamp: str | None = None, n_points: int = 100,
+            before_seconds: float | None = None, after_seconds: float = 0) -> dict:
+        rows = self.history.select(timestamp, n_points, before_seconds, after_seconds)
+        results = {"window": {
+            "count": len(rows),
+            "start": rows[0]["timestamp"] if rows else None,
+            "end": rows[-1]["timestamp"] if rows else None,
+        }}
         for sensor in SENSORS:
-
-            values = history_df[sensor]
-
-            slope = values.iloc[-1] - values.iloc[0]
-
+            values = [row[sensor] for row in rows]
             results[sensor] = {
-                "mean": float(values.mean()),
-                "std": float(values.std()),
-                "min": float(values.min()),
-                "max": float(values.max()),
-                "slope": float(slope),
+                "mean": mean(values) if values else None,
+                "std": stdev(values) if len(values) > 1 else None,
+                "min": min(values) if values else None,
+                "max": max(values) if values else None,
+                "slope": values[-1] - values[0] if values else None,
             }
-
         return results

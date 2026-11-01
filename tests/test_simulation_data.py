@@ -4,21 +4,25 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from data.scenarios.factory_machine import Factory
+from data.measurement_history import MeasurementHistory
 
 
 N_STEPS = 1000
 
-CSV_DIR = Path("experiments/outputs/csv")
+history = MeasurementHistory.create()
 PLOTS_DIR = Path("experiments/outputs/plots")
 
-CSV_DIR.mkdir(parents=True, exist_ok=True)
 PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 machine = Factory.create()
 
-external_df = pd.DataFrame(machine.run(N_STEPS))
-
-external_df.to_csv(CSV_DIR / "simulation.csv", index=False)
+measurements = []
+for _ in range(N_STEPS):
+    snapshot = machine.step()
+    history.append(snapshot)
+    measurements.append(snapshot)
+external_df = pd.DataFrame(measurements)
+print(f"Measurement history: {history.path}")
 
 external_columns = [
     "temperature",

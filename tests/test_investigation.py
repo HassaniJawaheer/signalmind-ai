@@ -1,5 +1,4 @@
-from pathlib import Path
-import pandas as pd
+from data.measurement_history import MeasurementHistory
 from data.scenarios.factory_machine import Factory
 from detection.detector import AnomalyDetector
 from investigation.models.request import Request
@@ -13,24 +12,18 @@ from investigation.langgraph.graph import graph
 
 
 N_STEPS = 10000
-CSV_DIR = Path("experiments/outputs/csv")
-CSV_DIR.mkdir(parents=True, exist_ok=True)
-
-
+history = MeasurementHistory.create()
+print(f"Measurement history: {history.path}")
 machine = Factory.create()
-
-data = machine.run(n_steps=N_STEPS)
-
-external_df = pd.DataFrame(data)
-
-external_df.to_csv(CSV_DIR / "simulation.csv", index=False)
 
 detector = AnomalyDetector()
 
 detections = []
 
 
-for snapshot in data:
+for _ in range(N_STEPS):
+    snapshot = machine.step()
+    history.append(snapshot)
     detection = detector.detect(snapshot)
 
     if detection.trigger:
@@ -54,9 +47,9 @@ context = Context(request=request)
 
 registry = ToolRegistry()
 
-registry.register(HistoryTool(csv_path=CSV_DIR / "simulation.csv"))
+registry.register(HistoryTool(history=history))
 
-registry.register(StatisticsTool(csv_path=CSV_DIR / "simulation.csv"))
+registry.register(StatisticsTool(history=history))
 
 
 agent = LLMAgent(tool_registry=registry)

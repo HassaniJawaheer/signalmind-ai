@@ -1,5 +1,4 @@
-from datetime import datetime
-from pathlib import Path
+from data.measurement_history import MeasurementHistory
 from data.scenarios.factory_machine import Factory
 from detection.detector import AnomalyDetector
 from investigation.models.request import Request
@@ -12,21 +11,21 @@ from investigation.langgraph.nodes import initialize_nodes
 from investigation.langgraph.graph import graph
 
 
-CSV_DIR = Path("experiments/outputs/csv")
-CSV_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def main():
 
     machine = Factory.create()
+    history = MeasurementHistory.create()
+    print(f"Measurement history: {history.path}")
 
     detector = AnomalyDetector()
 
     registry = ToolRegistry()
 
-    registry.register(HistoryTool(csv_path=CSV_DIR / "simulation.csv"))
+    registry.register(HistoryTool(history=history))
 
-    registry.register(StatisticsTool(csv_path=CSV_DIR / "simulation.csv"))
+    registry.register(StatisticsTool(history=history))
 
     agent = LLMAgent(tool_registry=registry)
 
@@ -40,6 +39,7 @@ def main():
     while True:
 
         sensors = machine.step()
+        history.append(sensors)
 
         signal = detector.detect(
             sensor_values=sensors

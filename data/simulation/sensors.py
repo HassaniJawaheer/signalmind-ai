@@ -1,5 +1,4 @@
 from random import uniform
-from datetime import datetime
 from data.simulation.state import MachineState
 
 
@@ -82,7 +81,7 @@ class Sensors:
 
         return self._clamp(flow, "flow_rate")
 
-    def generate(self, machine_state: MachineState):
+    def generate(self, machine_state: MachineState, timestamp: str):
         return {
             "temperature": self._temperature(machine_state),
             "vibration": self._vibration(machine_state),
@@ -90,5 +89,5 @@ class Sensors:
             "machine_activity": self._machine_activity(machine_state),
             "pressure": self._pressure(machine_state),
             "flow_rate": self._flow_rate(machine_state),
-            "timestamp": str(datetime.now())
+            "timestamp": timestamp
         }

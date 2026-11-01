@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from data.simulation.state import MachineState
 from data.simulation.dynamics import Dynamics
 from data.simulation.sensors import Sensors
@@ -5,7 +7,15 @@ from data.scenarios.scenario import Scenario
 
 
 class Engine:
-    def __init__(self):
+    def __init__(self, start_time: datetime | None = None,
+                 step_duration: timedelta = timedelta(seconds=1)):
+        self.start_time = start_time if start_time is not None else datetime.now(timezone.utc)
+        if self.start_time.tzinfo is None or self.start_time.utcoffset() is None:
+            raise ValueError("start_time must include a timezone.")
+        self.start_time = self.start_time.astimezone(timezone.utc)
+        if step_duration <= timedelta(0):
+            raise ValueError("step_duration must be positive.")
+        self.step_duration = step_duration
         self.state = MachineState()
 
         self.dynamics = Dynamics()
@@ -35,7 +45,8 @@ class Engine:
         )
 
         sensors = self.sensors.generate(
-            self.state
+            self.state,
+            timestamp=(self.start_time + self.t * self.step_duration).isoformat()
         )
 
         self.t += 1

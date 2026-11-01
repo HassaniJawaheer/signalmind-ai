@@ -123,4 +123,3 @@ Le système exécute alors les différentes étapes du workflow : simulation, de
 ## État du projet
 
 Les prochaines évolutions porteront principalement sur la gestion de la mémoire et l'amélioration des outils d'investigation.
-

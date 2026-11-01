@@ -1,38 +1,30 @@
-from pathlib import Path
-import pandas as pd
+from config.settings import SENSORS
+from data.measurement_history import MeasurementHistory
 from investigation.tools.base_tool import BaseTool
 
 
 class HistoryTool(BaseTool):
-
     @property
     def name(self) -> str:
         return "history"
 
     @property
     def description(self) -> str:
-        return "Retrieve historical sensor values before a timestamp."
+        return (
+            "Read recorded sensor measurements from the simulation JSONL. "
+            "Parameters: timestamp (optional ISO 8601 with timezone), n_points "
+            "(positive integer, default 100). Returns at most N measurements at or "
+            "before timestamp, including it; omit timestamp for latest recorded data. "
+            "For an inclusive time window, supply timestamp, before_seconds and "
+            "optionally after_seconds (default 0); n_points is then ignored. "
+            "Only available measurements are returned; inspect returned timestamps "
+            "for actual coverage. An empty window returns empty lists."
+        )
 
-    def __init__(self, csv_path: Path):
-        self.csv_path = csv_path
+    def __init__(self, history: MeasurementHistory):
+        self.history = history
 
-    def run(
-        self,
-        timestamp: str,
-        n_points: int = 100
-    ) -> dict[str, list]:
-
-        df = pd.read_csv(self.csv_path)
-
-        index = df[df["timestamp"] == timestamp].index
-
-        if len(index) == 0:
-            raise ValueError(f"Timestamp {timestamp} not found.")
-
-        end_idx = index[0]
-
-        start_idx = max(0,end_idx - n_points)
-
-        history_df = df.iloc[start_idx:end_idx + 1]
-
-        return history_df.to_dict(orient="list")
+    def run(self, timestamp: str | None = None, n_points: int = 100,
+            before_seconds: float | None = None, after_seconds: float = 0) -> dict:
+        rows = self.history.select(timestamp, n_points, before_seconds, after_seconds)
+        return {key: [row[key] for row in rows] for key in [*SENSORS, "timestamp"]}

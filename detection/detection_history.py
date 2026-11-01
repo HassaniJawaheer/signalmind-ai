@@ -1,5 +1,6 @@
 import json
 from dataclasses import asdict
+from pathlib import Path
 
 from config.settings import SAVE_ALL_DETECTIONS, DETECTION_HISTORY_PATH
 
@@ -7,7 +8,7 @@ from config.settings import SAVE_ALL_DETECTIONS, DETECTION_HISTORY_PATH
 class DetectionHistory:
 
     def __init__(self):
-        self.path = DETECTION_HISTORY_PATH
+        self.path = Path(DETECTION_HISTORY_PATH)
 
     def save(self, signal):
 
@@ -15,7 +16,7 @@ class DetectionHistory:
             return
 
         data = asdict(signal)
-        data["timestamp"] = data["timestamp"].isoformat()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(self.path, "a", encoding="utf-8") as f:
             f.write(json.dumps(data) + "\n")
