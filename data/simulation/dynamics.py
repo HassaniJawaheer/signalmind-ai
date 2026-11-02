@@ -1,8 +1,13 @@
+from config import settings
 from data.simulation.state import MachineState
 
 
 class Dynamics:
     def __init__(self):
+        self.cooling_wear_factor = settings.COOLING_WEAR_FACTOR
+        if not 0 <= self.cooling_wear_factor <= 1:
+            raise ValueError("COOLING_WEAR_FACTOR must be between 0 and 1.")
+
         self.bounds = {
             "load": (0.0, 1.0),
             "health": (0.0, 1.0),
@@ -146,10 +151,11 @@ class Dynamics:
     def _update_cooling_efficiency(
         self,
         machine_state: MachineState,
-        wear_factor: float = 0.0005
+        scenario_efficiency: float
     ):
-        machine_state.cooling_efficiency -= (
-            wear_factor * machine_state.wear
+        # Recompute from the scenario baseline, using wear at the start of this step.
+        machine_state.cooling_efficiency = scenario_efficiency * (
+            1 - self.cooling_wear_factor * machine_state.wear
         )
 
         machine_state.cooling_efficiency = self._clamp(
@@ -159,13 +165,16 @@ class Dynamics:
 
         return machine_state
 
-    def update(self, machine_state: MachineState):
+    def update(self, machine_state: MachineState, scenario_efficiency: float):
+        machine_state = self._update_cooling_efficiency(
+            machine_state,
+            scenario_efficiency
+        )
         machine_state = self._update_fan_speed(machine_state)
         machine_state = self._update_flow_rate(machine_state)
         machine_state = self._update_pressure(machine_state)
         machine_state = self._update_core_temperature(machine_state)
         machine_state = self._update_wear(machine_state)
         machine_state = self._update_health(machine_state)
-        machine_state = self._update_cooling_efficiency(machine_state)
 
         return machine_state

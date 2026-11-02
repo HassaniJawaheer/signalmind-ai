@@ -30,14 +30,11 @@ class Engine:
             self.t
         )
 
-        self.state.cooling_efficiency = (
-            self.scenario.cooling_efficiency(
-                self.t
-            )
-        )
+        scenario_efficiency = self.scenario.cooling_efficiency(self.t)
 
         self.state = self.dynamics.update(
-            self.state
+            self.state,
+            scenario_efficiency
         )
 
         self.internal_history.append(

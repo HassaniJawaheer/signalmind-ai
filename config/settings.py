@@ -1,3 +1,5 @@
+# Maximum relative cooling loss at wear = 1 (0 disables the wear effect).
+COOLING_WEAR_FACTOR = 0.10
 
 HIGH_TEMPERATURE_THRESHOLD = 85.0
 
