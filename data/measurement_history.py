@@ -1,4 +1,3 @@
-"""Append-only measurement history for one simulation (single writer)."""
 from collections import deque
 from datetime import datetime, timedelta, timezone
 import json

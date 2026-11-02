@@ -1,4 +1,3 @@
-"""Offline regression tests; run this file explicitly (other tests are demos)."""
 from contextlib import redirect_stdout
 from datetime import datetime, timedelta, timezone
 from io import StringIO
@@ -58,8 +57,10 @@ class MeasurementHistoryTests(unittest.TestCase):
         stats = StatisticsTool(self.history).run(before)
         self.assertEqual(stats['window']['count'], 0)
         self.assertIsNone(stats['temperature']['mean'])
+        self.assertIsNone(stats['temperature']['delta'])
         single = StatisticsTool(self.history).run(n_points=1)
         self.assertIsNone(single['temperature']['std'])
+        self.assertEqual(single['temperature']['delta'], 0)
         json.dumps(single, allow_nan=False)
 
     def test_tools_share_exact_window(self):
@@ -70,6 +71,8 @@ class MeasurementHistoryTests(unittest.TestCase):
         self.assertEqual(statistics['window']['count'], 3)
         for sensor in SENSORS:
             self.assertAlmostEqual(statistics[sensor]['mean'], sum(history[sensor]) / 3)
+            self.assertEqual(statistics[sensor]['delta'], history[sensor][-1] - history[sensor][0])
+            self.assertNotIn('slope', statistics[sensor])
         window = StatisticsTool(self.history).run(self.rows[2]['timestamp'], before_seconds=2, after_seconds=2)
         self.assertEqual(window['window']['start'], self.rows[1]['timestamp'])
         self.assertEqual(window['window']['end'], self.rows[3]['timestamp'])

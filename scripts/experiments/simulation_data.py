@@ -1,0 +1,90 @@
+def main():
+    from pathlib import Path
+
+    import matplotlib.pyplot as plt
+    import pandas as pd
+
+    from data.scenarios.factory_machine import Factory
+    from data.measurement_history import MeasurementHistory
+
+
+    N_STEPS = 1000
+
+    history = MeasurementHistory.create()
+    PLOTS_DIR = Path("experiments/outputs/plots")
+
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    machine = Factory.create()
+
+    measurements = []
+    for _ in range(N_STEPS):
+        snapshot = machine.step()
+        history.append(snapshot)
+        measurements.append(snapshot)
+    external_df = pd.DataFrame(measurements)
+    print(f"Measurement history: {history.path}")
+
+    external_columns = [
+        "temperature",
+        "vibration",
+        "power_consumption",
+        "machine_activity",
+        "pressure",
+        "flow_rate"
+    ]
+
+    internal_columns = [
+        "load",
+        "health",
+        "wear",
+        "core_temperature",
+        "cooling_efficiency",
+        "fan_speed",
+        "flow_rate",
+        "pressure"
+    ]
+
+
+    def normalize(df, columns):
+        return (df[columns] - df[columns].min()) / (
+            df[columns].max() - df[columns].min()
+        )
+
+
+    def plot_signals(df, columns, title, output_file):
+        plt.figure(figsize=(16, 8))
+
+        for column in columns:
+            plt.plot(df[column], label=column)
+
+        plt.legend()
+        plt.title(title)
+
+        plt.savefig(output_file)
+        plt.close()
+
+
+    external_normalized = normalize(external_df, external_columns)
+
+    plot_signals(
+        external_normalized,
+        external_columns,
+        "External normalized signals",
+        PLOTS_DIR / "external_normalized_signals.png"
+    )
+
+    internal_df = pd.DataFrame(machine.internal_history)
+
+    internal_normalized = normalize(internal_df, internal_columns)
+
+    plot_signals(
+        internal_normalized,
+        internal_columns,
+        "Internal normalized signals",
+        PLOTS_DIR / "internal_normalized_signals.png"
+    )
+
+
+if __name__ == "__main__":
+    main()

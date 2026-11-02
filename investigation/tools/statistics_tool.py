@@ -15,7 +15,7 @@ class StatisticsTool(BaseTool):
     def description(self) -> str:
         return (
             "Compute mean, sample std (null for a single measurement), min, max "
-            "and slope (legacy name for last minus first, not a time-normalized slope). "
+            "and delta (last value minus first value, not a rate of change). "
             "Includes actual window count, start and end. "
             + HistoryTool(self.history).description
         )
@@ -38,6 +38,6 @@ class StatisticsTool(BaseTool):
                 "std": stdev(values) if len(values) > 1 else None,
                 "min": min(values) if values else None,
                 "max": max(values) if values else None,
-                "slope": values[-1] - values[0] if values else None,
+                "delta": values[-1] - values[0] if values else None,
             }
         return results

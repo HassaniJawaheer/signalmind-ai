@@ -1,12 +1,16 @@
+from config import settings
 from detection.models import Detection
 from detection.rules import RULES
 
 class AnomalyDetector:
 
 
-    def __init__(self, threshold=5):
+    def __init__(self, threshold=None):
 
-        self.threshold=threshold
+        if threshold is None:
+            threshold = settings.ANOMALY_SCORE_THRESHOLD
+
+        self.threshold = threshold
 
 
     def detect(self, sensor_values:dict):

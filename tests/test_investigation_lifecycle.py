@@ -1,4 +1,3 @@
-"""Offline tests for the real graph and the Python runtime."""
 import json
 import os
 import unittest
