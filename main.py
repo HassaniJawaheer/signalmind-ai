@@ -7,8 +7,7 @@ from investigation.tools.history_tool import HistoryTool
 from investigation.tools.statistics_tool import StatisticsTool
 from investigation.tools.tool_registry import ToolRegistry
 from investigation.agents.llm_agent import LLMAgent
-from investigation.langgraph.nodes import initialize_nodes
-from investigation.langgraph.graph import graph
+from investigation.langgraph.graph import run_investigation
 
 
 
@@ -28,11 +27,6 @@ def main():
     registry.register(StatisticsTool(history=history))
 
     agent = LLMAgent(tool_registry=registry)
-
-    initialize_nodes(
-        llm_agent=agent,
-        tool_registry=registry
-    )
 
     print("\nSignalMind AI started.\n")
 
@@ -58,9 +52,14 @@ def main():
 
         context = Context(request=request)
 
-        result = graph.invoke(context)
+        result = run_investigation(context, agent, registry)
 
         print("\n========== INVESTIGATION FINISHED ==========\n")
+
+        print(f"Status: {result.status}")
+        print(f"Stop reason: {result.stop_reason}")
+        if result.error_message:
+            print(f"Error: {result.error_message}")
 
         print(
             f"Final conclusion:\n"

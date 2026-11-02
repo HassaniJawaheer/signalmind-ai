@@ -124,20 +124,19 @@ class MeasurementHistoryTests(unittest.TestCase):
             self.assertEqual(history.select(n_points=1), [sensor_values])
             return detector.detect(sensor_values)
 
-        def investigate(context):
-            registry = initialize.call_args.kwargs['tool_registry']
+        def investigate(context, agent, registry):
             for name in ('history', 'statistics'):
                 self.assertIs(registry.get(name).history, history)
             self.assertEqual(registry.get('history').run(context.request.timestamp, 1)['timestamp'],
                              [context.request.timestamp])
             # Isolate the unrelated LangGraph final-result contract.
-            return SimpleNamespace(final_conclusion='offline', observations=[], hypotheses=[])
+            return SimpleNamespace(final_conclusion='offline', observations=[], hypotheses=[],
+                                   status='completed', stop_reason='agent_finished', error_message=None)
 
         with patch.object(main.MeasurementHistory, 'create', return_value=history), \
              patch.object(main, 'LLMAgent'), \
-             patch.object(main, 'initialize_nodes') as initialize, \
              patch.object(main, 'AnomalyDetector', return_value=SimpleNamespace(detect=detect)), \
-             patch.object(main.graph, 'invoke', side_effect=investigate), \
+             patch.object(main, 'run_investigation', side_effect=investigate), \
              patch('requests.post', side_effect=AssertionError('Network is forbidden')), \
              redirect_stdout(StringIO()):
             main.main()

@@ -1,4 +1,5 @@
 import re
+from investigation.errors import InvestigationError
 
 class Cleaner:
 
@@ -27,7 +28,7 @@ class Cleaner:
 
         if start == -1 or end == -1:
 
-            raise ValueError("No JSON object found in LLM output.")
+            raise InvestigationError("invalid_response", "No JSON object found in the model response.")
 
         output = output[start:end + 1]
 

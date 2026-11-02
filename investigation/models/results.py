@@ -11,3 +11,6 @@ class InvestigationResult:
     observations: List[str] = field(default_factory=list)
     hypotheses: List[str] = field(default_factory=list)
     final_conclusion: Optional[str] = None
+    status: str = "running"
+    stop_reason: Optional[str] = None
+    error_message: Optional[str] = None

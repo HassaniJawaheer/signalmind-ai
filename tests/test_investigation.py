@@ -7,8 +7,7 @@ from investigation.tools.history_tool import HistoryTool
 from investigation.tools.statistics_tool import StatisticsTool
 from investigation.tools.tool_registry import ToolRegistry
 from investigation.agents.llm_agent import LLMAgent
-from investigation.langgraph.nodes import initialize_nodes
-from investigation.langgraph.graph import graph
+from investigation.langgraph.graph import run_investigation
 
 
 N_STEPS = 10000
@@ -55,12 +54,6 @@ registry.register(StatisticsTool(history=history))
 agent = LLMAgent(tool_registry=registry)
 
 
-initialize_nodes(
-    llm_agent=agent,
-    tool_registry=registry
-)
-
-
 print("\n========== REQUEST ==========\n")
 
 print(request)
@@ -69,7 +62,7 @@ print(request)
 print("\n========== LANGGRAPH EXECUTION ==========\n")
 
 
-result = graph.invoke(context)
+result = run_investigation(context, agent, registry)
 
 
 print("\n========== FINAL STATE ==========\n")

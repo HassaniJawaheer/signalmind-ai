@@ -14,3 +14,7 @@ class Context:
     working_memory: Dict[str, Any] = field(default_factory=dict)
     final_conclusion: Optional[str] = None
     current_action: Optional[AgentAction] = None
+    status: str = "running"
+    stop_reason: Optional[str] = None
+    error_message: Optional[str] = None
+    iterations: int = 0

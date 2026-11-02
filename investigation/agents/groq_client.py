@@ -1,5 +1,7 @@
 import os
 import requests
+from math import isfinite
+from investigation.errors import InvestigationError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -7,7 +9,12 @@ load_dotenv()
 
 class GroqClient:
 
-    def __init__(self):
+    def __init__(self, connect_timeout: float = 5.0, read_timeout: float = 30.0):
+
+        for timeout in (connect_timeout, read_timeout):
+            if not isfinite(timeout) or timeout <= 0:
+                raise ValueError("HTTP timeouts must be finite and positive.")
+        self.timeout = (connect_timeout, read_timeout)
 
         self.api_key = os.getenv("GROQ_API_KEY")
         self.model = os.getenv("GROQ_MODEL")
@@ -45,29 +52,48 @@ class GroqClient:
             "max_tokens": self.max_tokens
         }
 
-        response = requests.post(
-            self.url,
-            headers=headers,
-            json=payload
-        )
+        try:
+            response = requests.post(
+                self.url,
+                headers=headers,
+                json=payload,
+                timeout=self.timeout,
+            )
+        except requests.Timeout as error:
+            raise InvestigationError("api_timeout", "The API request timed out.") from error
+        except requests.ConnectionError as error:
+            raise InvestigationError("network_error", "Unable to connect to the API.") from error
+        except requests.RequestException as error:
+            raise InvestigationError("api_error", "The API request failed.") from error
 
         if not response.ok:
-
-            raise RuntimeError(
-                f"Groq request failed.\n"
-                f"Status code: {response.status_code}\n"
-                f"Response:\n{response.text}"
-            )
+            self.raise_api_error(response)
 
         try:
-
             content = response.json()["choices"][0]["message"]["content"]
-
-        except Exception as e:
-
-            raise RuntimeError(
-                f"Unable to extract model response.\n"
-                f"Raw response:\n{response.text}"
-            ) from e
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError("Missing response content.")
+        except (ValueError, KeyError, IndexError, TypeError) as error:
+            raise InvestigationError("invalid_response", "The API returned an invalid response.") from error
 
         return content
+
+    def raise_api_error(self, response) -> None:
+        # Never expose the raw response, request headers, or exception text.
+        code = None
+        try:
+            details = response.json().get("error", {})
+            if isinstance(details, dict):
+                code = details.get("code")
+        except (ValueError, AttributeError):
+            pass
+
+        if code in ("context_length_exceeded", "context_window_exceeded"):
+            raise InvestigationError("context_limit", "The API reported that the context limit was exceeded.")
+        if code in ("insufficient_quota", "quota_exceeded"):
+            raise InvestigationError("quota_exceeded", "The API reported an exhausted quota.")
+        if response.status_code == 429:
+            raise InvestigationError("rate_limit", "The API rejected the request due to a usage limit.")
+        if response.status_code in (401, 403):
+            raise InvestigationError("authentication_error", "The API denied access to the request.")
+        raise InvestigationError("api_error", f"The API returned HTTP {response.status_code}.")
