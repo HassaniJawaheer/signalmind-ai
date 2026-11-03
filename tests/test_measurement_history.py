@@ -53,7 +53,7 @@ class MeasurementHistoryTests(unittest.TestCase):
     def test_empty_window_and_single_sample(self):
         before = '2025-12-31T00:00:00+00:00'
         self.assertEqual(self.history.select(before), [])
-        self.assertEqual(HistoryTool(self.history).run(before)['timestamp'], [])
+        self.assertEqual(HistoryTool(self.history).run(['temperature'], timestamp=before)['timestamp'], [])
         stats = StatisticsTool(self.history).run(before)
         self.assertEqual(stats['window']['count'], 0)
         self.assertIsNone(stats['temperature']['mean'])
@@ -65,11 +65,11 @@ class MeasurementHistoryTests(unittest.TestCase):
 
     def test_tools_share_exact_window(self):
         args = dict(timestamp=self.rows[3]['timestamp'], n_points=3)
-        history = HistoryTool(self.history).run(**args)
+        history = HistoryTool(self.history).run(["temperature", "vibration"], **args)
         statistics = StatisticsTool(self.history).run(**args)
         self.assertEqual(history['timestamp'], [r['timestamp'] for r in self.rows[1:4]])
         self.assertEqual(statistics['window']['count'], 3)
-        for sensor in SENSORS:
+        for sensor in ("temperature", "vibration"):
             self.assertAlmostEqual(statistics[sensor]['mean'], sum(history[sensor]) / 3)
             self.assertEqual(statistics[sensor]['delta'], history[sensor][-1] - history[sensor][0])
             self.assertNotIn('slope', statistics[sensor])
@@ -130,7 +130,7 @@ class MeasurementHistoryTests(unittest.TestCase):
         def investigate(context, agent, registry):
             for name in ('history', 'statistics'):
                 self.assertIs(registry.get(name).history, history)
-            self.assertEqual(registry.get('history').run(context.request.timestamp, 1)['timestamp'],
+            self.assertEqual(registry.get('history').run(['temperature'], context.request.timestamp, 1)['timestamp'],
                              [context.request.timestamp])
             # Isolate the unrelated LangGraph final-result contract.
             return SimpleNamespace(final_conclusion='offline', observations=[], hypotheses=[],

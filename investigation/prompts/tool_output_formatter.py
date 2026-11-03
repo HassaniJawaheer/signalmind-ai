@@ -1,32 +1,17 @@
+import json
+from config import settings
+
+
 class ToolOutputFormatter:
 
-    def format(self,tool_output) -> str:
+    def present(self, value):
+        if isinstance(value, float):
+            return round(value, settings.PROMPT_DECIMAL_PLACES)
+        if isinstance(value, dict):
+            return {key: self.present(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [self.present(item) for item in value]
+        return value
 
-        text = ""
-
-        for key, value in tool_output.items():
-
-            text += f"{key}\n"
-
-            if isinstance(value,dict):
-
-                for sub_key, sub_value in value.items():
-
-                    text += f"{sub_key}: {sub_value}\n"
-
-            elif isinstance(value, list):
-
-                values = ", ".join(
-                    str(x)
-                    for x in value
-                )
-
-                text += f"{values}\n"
-
-            else:
-
-                text += f"{value}\n"
-
-            text += "\n"
-
-        return text
+    def format(self, tool_output) -> str:
+        return json.dumps(self.present(tool_output), ensure_ascii=False, allow_nan=False)

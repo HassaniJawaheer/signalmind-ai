@@ -18,3 +18,5 @@ class Context:
     stop_reason: Optional[str] = None
     error_message: Optional[str] = None
     iterations: int = 0
+    observation_turns: List[int] = field(default_factory=list)
+    hypothesis_turns: List[int] = field(default_factory=list)

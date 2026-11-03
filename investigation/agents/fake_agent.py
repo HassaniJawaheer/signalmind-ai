@@ -12,6 +12,7 @@ class FakeAgent:
                 action_type="call_tool",
                 tool_name="history",
                 tool_input={
+                    "sensors": ["temperature"],
                     "timestamp": context.request.timestamp,
                     "n_points": 100,
                 },

@@ -1,3 +1,9 @@
+PROMPT_RECENT_TURNS = 4
+MAX_HISTORY_POINTS = 15
+MAX_HISTORY_SENSORS = 2
+MAX_ANALYSIS_POINTS = 1000
+PROMPT_DECIMAL_PLACES = 3
+
 # Maximum relative cooling loss at wear = 1 (0 disables the wear effect).
 COOLING_WEAR_FACTOR = 0.10
 

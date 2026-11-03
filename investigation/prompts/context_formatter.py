@@ -1,3 +1,4 @@
+from config import settings
 from investigation.models.context import Context
 from investigation.prompts.tool_output_formatter import ToolOutputFormatter
 
@@ -6,74 +7,42 @@ class ContextFormatter:
     def __init__(self):
         self.tool_output_formatter = ToolOutputFormatter()
 
-    def format(self,context: Context) -> str:
+    def format(self, context: Context) -> str:
+        window = settings.PROMPT_RECENT_TURNS
+        if isinstance(window, bool) or not isinstance(window, int) or window <= 0:
+            raise ValueError("PROMPT_RECENT_TURNS must be a positive integer.")
+        if len(context.observations) != len(context.observation_turns):
+            raise ValueError("Each observation must have a turn number.")
+        if len(context.hypotheses) != len(context.hypothesis_turns):
+            raise ValueError("Each hypothesis must have a turn number.")
 
-        text = ""
-
-        text += (
-            "Initial anomaly\n\n"
-            "The following sensor values triggered the investigation.\n"
-            "These values remain constant during the investigation.\n\n"
-            f"Timestamp:\n"
-            f"{context.request.timestamp}\n\n"
-            "Sensor values:\n"
+        # decide() increments iterations before building this prompt.
+        last_turn = max(context.observation_turns + context.hypothesis_turns
+                        + [call.turn for call in context.tool_calls] + [0])
+        completed_turn = max(last_turn, context.iterations - 1)
+        first_turn = max(1, completed_turn - window + 1)
+        formatter = self.tool_output_formatter
+        text = (
+            "Initial anomaly (fixed reference):\n"
+            f"Timestamp: {context.request.timestamp}\n"
+            f"Sensor values: {formatter.format(context.request.sensor_values)}\n\n"
+            f"Recent investigation turns: {first_turn} to {completed_turn}. "
+            "Older turns are omitted from this prompt, not deleted.\n"
+            "Observations reported by the agent:\n"
         )
-
-        for sensor, value in context.request.sensor_values.items():
-
-            text += f"{sensor}: {value}\n"
-
-        text += "\n"
-
-        text += "Investigation history\n\n"
-
-        text += "Previous observations:\n"
-
-        if context.observations:
-
-            for i, observation in enumerate(context.observations, start=1):
-                text += f"{i}. {observation}\n"
-
-        else:
-
-            text += "No observations yet.\n"
-
-        text += "\n"
-
-        text += "Previous hypotheses:\n"
-
-        if context.hypotheses:
-            for i, hypothesis in enumerate(context.hypotheses,start=1):
-                text += f"{i}. {hypothesis}\n"
-        else:
-
-            text += "No hypotheses yet.\n"
-
-        text += "\n"
-
-        text += "Previous tool calls:\n"
-
-        if context.tool_calls:
-
-            for tool_call in context.tool_calls:
-
+        for turn, observation in zip(context.observation_turns, context.observations):
+            if first_turn <= turn <= completed_turn:
+                text += f"Turn {turn}: {observation}\n"
+        text += "\nHypotheses (not established facts):\n"
+        for turn, hypothesis in zip(context.hypothesis_turns, context.hypotheses):
+            if first_turn <= turn <= completed_turn:
+                text += f"Turn {turn}: {hypothesis}\n"
+        text += "\nTool evidence:\n"
+        for call in context.tool_calls:
+            if first_turn <= call.turn <= completed_turn:
                 text += (
-                    f"\nTool name: {tool_call.tool_name}\n"
-                    "Tool input:\n"
+                    f"Turn {call.turn}, tool: {call.tool_name}\n"
+                    f"Input: {formatter.format(call.tool_input)}\n"
+                    f"Output: {formatter.format(call.tool_output)}\n"
                 )
-
-                for key, value in tool_call.tool_input.items():
-
-                    text += f"{key}: {value}\n"
-
-                tool_output = self.tool_output_formatter.format(tool_call.tool_output)
-
-                text += (
-                    "\nTool output:\n"
-                    f"{tool_output}\n"
-                )
-        else:
-
-            text += "No tool calls yet.\n"
-
         return text

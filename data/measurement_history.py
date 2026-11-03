@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from config.settings import SENSORS
+from config import settings
 
 
 def parse_timestamp(value: str) -> datetime:
@@ -42,12 +43,14 @@ class MeasurementHistory:
 
     def select(self, timestamp: str | None = None, n_points: int = 100,
                before_seconds: float | None = None, after_seconds: float = 0) -> list[dict]:
-        """Latest N rows <= timestamp, or an inclusive temporal window.
+        rows, _ = self.select_with_metadata(timestamp, n_points, before_seconds, after_seconds)
+        return rows
 
-        Window mode requires timestamp and before_seconds; n_points is ignored.
-        Only recorded rows are returned, including for incomplete windows.
-        Files must contain strictly increasing timestamps from a single run.
-        """
+    def select_with_metadata(self, timestamp: str | None = None, n_points: int = 100,
+                             before_seconds: float | None = None, after_seconds: float = 0):
+        limit = settings.MAX_ANALYSIS_POINTS
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
+            raise ValueError("MAX_ANALYSIS_POINTS must be a positive integer.")
         if isinstance(n_points, bool) or not isinstance(n_points, int) or n_points <= 0:
             raise ValueError("n_points must be a positive integer.")
         anchor = parse_timestamp(timestamp) if timestamp is not None else None
@@ -62,7 +65,11 @@ class MeasurementHistory:
             raise ValueError("after_seconds requires before_seconds.")
         lower = anchor - timedelta(seconds=before_seconds) if window else None
         upper = anchor + timedelta(seconds=after_seconds) if window else anchor
-        rows = [] if window else deque(maxlen=n_points)
+        capacity = limit
+        if not window:
+            capacity = min(n_points, limit)
+        rows = deque(maxlen=capacity)
+        matching_count = 0
         previous = None
         with self.path.open(encoding="utf-8") as stream:
             for line_number, line in enumerate(stream, 1):
@@ -72,5 +79,18 @@ class MeasurementHistory:
                     raise ValueError(f"Non-increasing timestamp at line {line_number}.")
                 previous = instant
                 if (lower is None or instant >= lower) and (upper is None or instant <= upper):
+                    matching_count += 1
                     rows.append(record)
-        return list(rows)
+        selected_count = matching_count
+        if not window:
+            selected_count = min(n_points, matching_count)
+        rows = list(rows)
+        metadata = {
+            "selected_count": selected_count,
+            "count": len(rows),
+            "truncated": selected_count > len(rows),
+            "start": rows[0]["timestamp"] if rows else None,
+            "end": rows[-1]["timestamp"] if rows else None,
+            "selection": "latest available points within requested bounds",
+        }
+        return rows, metadata

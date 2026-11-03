@@ -66,8 +66,10 @@ class InvestigationRuntime:
         context.current_action = action
         if action.observations:
             context.observations.append(action.observations)
+            context.observation_turns.append(context.iterations)
         if action.hypotheses:
             context.hypotheses.append(action.hypotheses)
+            context.hypothesis_turns.append(context.iterations)
         self.check_duration(context)
         return context
 
@@ -90,6 +92,7 @@ class InvestigationRuntime:
             tool_name=action.tool_name,
             tool_input=action.tool_input,
             tool_output=output,
+            turn=context.iterations,
         ))
         context.working_memory[action.tool_name] = output
         self.check_duration(context)

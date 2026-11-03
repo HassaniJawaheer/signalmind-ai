@@ -34,7 +34,9 @@ def main():
         [
             ToolCall(
                 tool_name="history",
+                turn=1,
                 tool_input={
+                    "sensors": ["temperature"],
                     "timestamp": request.timestamp,
                     "n_points": 10
                 },
@@ -44,6 +46,7 @@ def main():
             ),
             ToolCall(
                 tool_name="statistics",
+                turn=2,
                 tool_input={
                     "timestamp": request.timestamp,
                     "n_points": 10
@@ -58,6 +61,10 @@ def main():
             )
         ]
     )
+
+    context.observation_turns = [1, 2]
+    context.hypothesis_turns = [2]
+    context.iterations = 3
 
     tool_registry = ToolRegistry()
     history = MeasurementHistory("dummy.jsonl")
