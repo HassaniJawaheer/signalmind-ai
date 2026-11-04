@@ -1,15 +1,9 @@
 OUTPUT_SCHEMA = """
-Return only a valid JSON object following this example::
+Return one JSON object. Examples of the two allowed actions:
 
-{
-    "action_type": "call_tool",
-    "tool_name": "statistics",
-    "tool_input": {
-        "timestamp": "...",
-        "n_points": 10
-    },
-    "observations": "Temperature is increasing.",
-    "hypotheses": "Cooling efficiency degradation suspected.",
-    "final_conclusion": null
-}
+Tool call:
+{"action_type":"call_tool","tool_name":"statistics","tool_input":{"timestamp":"...","n_points":10},"observations":"Temperature increased.","hypotheses":"Cooling degradation is possible.","final_conclusion":null}
+
+Finish (adapt the conclusion to the evidence; this example is not a diagnosis):
+{"action_type":"finish","tool_name":null,"tool_input":{},"observations":"","hypotheses":"","final_conclusion":"The available evidence is insufficient to determine the cause."}
 """

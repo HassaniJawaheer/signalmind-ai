@@ -20,3 +20,4 @@ class Context:
     iterations: int = 0
     observation_turns: List[int] = field(default_factory=list)
     hypothesis_turns: List[int] = field(default_factory=list)
+    max_decisions: Optional[int] = None

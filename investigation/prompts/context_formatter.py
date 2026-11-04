@@ -22,7 +22,21 @@ class ContextFormatter:
         completed_turn = max(last_turn, context.iterations - 1)
         first_turn = max(1, completed_turn - window + 1)
         formatter = self.tool_output_formatter
-        text = (
+        text = ""
+        if context.max_decisions is not None:
+            decision = max(1, context.iterations)
+            remaining = max(0, context.max_decisions - decision)
+            text += (
+                f"Decision {decision} of {context.max_decisions}. "
+                f"{remaining} decisions remaining after this one.\n"
+            )
+            if remaining == 0:
+                text += (
+                    "This is your last decision: return finish with a cautious synthesis "
+                    "of available evidence and uncertainties, rather than another tool call.\n"
+                )
+            text += "\n"
+        text += (
             "Initial anomaly (fixed reference):\n"
             f"Timestamp: {context.request.timestamp}\n"
             f"Sensor values: {formatter.format(context.request.sensor_values)}\n\n"

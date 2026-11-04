@@ -28,6 +28,7 @@ class InvestigationRuntime:
     def prepare(self, context: Context) -> None:
         if context.status != "running" or context.current_action is not None:
             raise ValueError("An investigation requires a fresh running context.")
+        context.max_decisions = self.max_iterations
         self.started_at = monotonic()
 
     def check_duration(self, context: Context) -> bool:
