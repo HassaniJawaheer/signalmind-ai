@@ -1,6 +1,9 @@
 import os
+import json
 import requests
 from math import isfinite
+from time import monotonic, sleep
+from config import settings
 from investigation.errors import InvestigationError
 from dotenv import load_dotenv
 
@@ -15,6 +18,10 @@ class GroqClient:
             if not isfinite(timeout) or timeout <= 0:
                 raise ValueError("HTTP timeouts must be finite and positive.")
         self.timeout = (connect_timeout, read_timeout)
+        self.min_call_interval = settings.GROQ_MIN_CALL_INTERVAL_SECONDS
+        if not isfinite(self.min_call_interval) or self.min_call_interval < 0:
+            raise ValueError("GROQ_MIN_CALL_INTERVAL_SECONDS must be finite and non-negative.")
+        self.last_call_started_at = None
 
         self.api_key = os.getenv("GROQ_API_KEY")
         self.model = os.getenv("GROQ_MODEL")
@@ -52,6 +59,9 @@ class GroqClient:
             "max_tokens": self.max_tokens
         }
 
+        self.wait_before_call()
+        self.last_call_started_at = monotonic()
+
         try:
             response = requests.post(
                 self.url,
@@ -67,6 +77,7 @@ class GroqClient:
             raise InvestigationError("api_error", "The API request failed.") from error
 
         if not response.ok:
+            self.print_api_error(response)
             self.raise_api_error(response)
 
         try:
@@ -77,6 +88,34 @@ class GroqClient:
             raise InvestigationError("invalid_response", "The API returned an invalid response.") from error
 
         return content
+
+    def wait_before_call(self) -> None:
+        if self.last_call_started_at is None:
+            return
+        elapsed = monotonic() - self.last_call_started_at
+        remaining = self.min_call_interval - elapsed
+        if remaining > 0:
+            print(f"Waiting {remaining:.1f} seconds before the next Groq request.")
+            sleep(remaining)
+
+    def print_api_error(self, response) -> None:
+        # Temporary diagnostic; omit request headers and redact the API key.
+        try:
+            body = response.json()
+            if isinstance(body, dict):
+                body = body.get("error", body)
+            details = json.dumps(body, ensure_ascii=False)
+        except ValueError:
+            details = response.text
+
+        diagnostic = (
+            f"Groq HTTP error: {response.status_code}\n"
+            f"Requested model: {self.model}\n"
+            f"Response: {details}"
+        )
+        if self.api_key:
+            diagnostic = diagnostic.replace(self.api_key, "[REDACTED]")
+        print(diagnostic[:2000])
 
     def raise_api_error(self, response) -> None:
         # Never expose the raw response, request headers, or exception text.

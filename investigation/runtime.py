@@ -1,3 +1,4 @@
+from config import settings
 from inspect import signature
 from math import isfinite
 from time import monotonic
@@ -11,7 +12,9 @@ from investigation.models.context import Context
 
 class InvestigationRuntime:
 
-    def __init__(self, agent, registry, max_iterations=10, max_duration_seconds=120.0):
+    def __init__(self, agent, registry, max_iterations=10, max_duration_seconds=None):
+        if max_duration_seconds is None:
+            max_duration_seconds = settings.INVESTIGATION_MAX_DURATION_SECONDS
         if isinstance(max_iterations, bool) or not isinstance(max_iterations, int) or max_iterations <= 0:
             raise ValueError("max_iterations must be a positive integer.")
         if not isfinite(max_duration_seconds) or max_duration_seconds <= 0:

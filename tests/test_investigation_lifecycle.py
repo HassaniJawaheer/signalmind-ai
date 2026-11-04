@@ -171,6 +171,9 @@ class LifecycleTests(unittest.TestCase):
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
+        pacing = patch('config.settings.GROQ_MIN_CALL_INTERVAL_SECONDS', 0)
+        pacing.start()
+        self.addCleanup(pacing.stop)
         environment = patch.dict(os.environ, {'GROQ_API_KEY': 'secret-key', 'GROQ_MODEL': 'test-model'})
         environment.start()
         self.addCleanup(environment.stop)

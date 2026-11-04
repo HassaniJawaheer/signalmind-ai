@@ -27,7 +27,7 @@ def build_graph(runtime: InvestigationRuntime):
 
 
 def run_investigation(context: Context, agent, registry, max_iterations=10,
-                      max_duration_seconds=120.0) -> InvestigationResult:
+                      max_duration_seconds=None) -> InvestigationResult:
     runtime = InvestigationRuntime(agent, registry, max_iterations, max_duration_seconds)
     runtime.prepare(context)
     graph = build_graph(runtime)
