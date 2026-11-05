@@ -1,180 +1,85 @@
-from config import settings
-from data.simulation.state import MachineState
+from math import exp, isfinite, sqrt
+from config import pump
+from data.simulation.state import PumpState
 
 
 class Dynamics:
     def __init__(self):
-        self.cooling_wear_factor = settings.COOLING_WEAR_FACTOR
-        if not 0 <= self.cooling_wear_factor <= 1:
-            raise ValueError("COOLING_WEAR_FACTOR must be between 0 and 1.")
+        positive_parameters = (
+            pump.WATER_DENSITY_KG_M3, pump.GRAVITY_M_S2,
+            pump.NOMINAL_SPEED_RPM, pump.NOMINAL_FLOW_M3_H,
+            pump.NOMINAL_HEAD_M, pump.SHUTOFF_HEAD_M,
+            pump.MOTOR_HEAT_CAPACITY_J_K, pump.MOTOR_THERMAL_CONDUCTANCE_W_K,
+            pump.SPEED_TIME_CONSTANT_SECONDS, pump.MAX_INTEGRATION_STEP_SECONDS,
+        )
+        if any(not isfinite(value) or value <= 0 for value in positive_parameters):
+            raise ValueError("Pump and integration parameters must be finite and positive.")
+        if pump.SHUTOFF_HEAD_M <= pump.NOMINAL_HEAD_M:
+            raise ValueError("Shutoff head must exceed nominal operating head.")
+        for efficiency in (pump.HYDRAULIC_CONVERSION_EFFICIENCY, pump.MOTOR_EFFICIENCY):
+            if not 0 < efficiency <= 1:
+                raise ValueError("Efficiencies must be in (0, 1].")
+        if not isfinite(pump.PARASITIC_SHAFT_POWER_W) or pump.PARASITIC_SHAFT_POWER_W < 0:
+            raise ValueError("Parasitic shaft power must be finite and non-negative.")
+        if not isfinite(pump.AMBIENT_TEMPERATURE_C):
+            raise ValueError("Ambient temperature must be finite.")
+        self.pump_curve_coefficient = (
+            (pump.SHUTOFF_HEAD_M - pump.NOMINAL_HEAD_M) / pump.NOMINAL_FLOW_M3_H ** 2
+        )
+        self.circuit_coefficient = pump.NOMINAL_HEAD_M / pump.NOMINAL_FLOW_M3_H ** 2
 
-        self.bounds = {
-            "load": (0.0, 1.0),
-            "health": (0.0, 1.0),
-            "wear": (0.0, 1.0),
-            "core_temperature": (20.0, 120.0),
-            "cooling_efficiency": (0.0, 1.0),
-            "fan_speed": (0.0, 1.0),
-            "flow_rate": (0.0, 1.0),
-            "pressure": (0.0, 1.0)
+    def operating_point(self, speed_rpm: float, resistance_factor: float):
+        if not isfinite(speed_rpm) or not 0 <= speed_rpm <= pump.NOMINAL_SPEED_RPM:
+            raise ValueError("Speed must be between zero and nominal speed.")
+        if not isfinite(resistance_factor) or resistance_factor <= 0:
+            raise ValueError("Circuit resistance factor must be positive.")
+        ratio = speed_rpm / pump.NOMINAL_SPEED_RPM
+        resistance = self.circuit_coefficient * resistance_factor
+        # H_pump = H_shutoff*r^2 - A*Q^2; H_circuit = R*Q^2, no static lift.
+        flow_m3_h = sqrt(pump.SHUTOFF_HEAD_M * ratio ** 2 / (
+            self.pump_curve_coefficient + resistance
+        ))
+        head_m = resistance * flow_m3_h ** 2
+        pressure_pa = pump.WATER_DENSITY_KG_M3 * pump.GRAVITY_M_S2 * head_m
+        hydraulic_power_w = pressure_pa * flow_m3_h / 3600
+        shaft_power_w = (
+            hydraulic_power_w / pump.HYDRAULIC_CONVERSION_EFFICIENCY
+            + pump.PARASITIC_SHAFT_POWER_W * ratio ** 3
+        )
+        electrical_power_w = shaft_power_w / pump.MOTOR_EFFICIENCY
+        return {
+            "flow_rate": flow_m3_h,
+            "pressure": pressure_pa / 100000,
+            "power_consumption": electrical_power_w / 1000,
+            "hydraulic_power_w": hydraulic_power_w,
+            "shaft_power_w": shaft_power_w,
+            "motor_loss_w": electrical_power_w - shaft_power_w,
         }
 
-    def _clamp(self, value, key):
-        low, high = self.bounds[key]
-        return max(low, min(value, high))
+    def update(self, state: PumpState, speed_setpoint_rpm: float,
+               resistance_factor: float, ventilation_factor: float,
+               duration_seconds: float):
+        if not isfinite(duration_seconds) or duration_seconds <= 0:
+            raise ValueError("Integration duration must be positive.")
+        if not isfinite(speed_setpoint_rpm) or not 0 <= speed_setpoint_rpm <= pump.NOMINAL_SPEED_RPM:
+            raise ValueError("Speed setpoint must be between zero and nominal speed.")
+        if not isfinite(ventilation_factor) or not 0 < ventilation_factor <= 1:
+            raise ValueError("Ventilation factor must be in (0, 1].")
+        # First-order speed response; torque/inertia and hydraulic transients are omitted.
+        decay = exp(-duration_seconds / pump.SPEED_TIME_CONSTANT_SECONDS)
+        midpoint_speed = speed_setpoint_rpm + (state.rotational_speed - speed_setpoint_rpm) * sqrt(decay)
+        new_speed = speed_setpoint_rpm + (state.rotational_speed - speed_setpoint_rpm) * decay
+        midpoint = self.operating_point(midpoint_speed, resistance_factor)
+        point = self.operating_point(new_speed, resistance_factor)
 
-    def _update_load(
-        self,
-        machine_state: MachineState,
-        new_load: float
-    ):
-        machine_state.load = self._clamp(new_load, "load")
-        return machine_state
-
-    def _update_health(
-        self,
-        machine_state: MachineState,
-        health_wear_factor: float = 0.001,
-        health_temp_factor: float = 0.0005
-    ):
-        machine_state.health -= (
-            health_wear_factor * machine_state.wear
-        )
-
-        machine_state.health -= (
-            health_temp_factor *
-            max(0, machine_state.core_temperature - 70)
-        )
-
-        machine_state.health = self._clamp(
-            machine_state.health,
-            "health"
-        )
-
-        return machine_state
-
-    def _update_wear(
-        self,
-        machine_state: MachineState,
-        wear_load_factor: float = 0.001,
-        wear_temp_factor: float = 0.001
-    ):
-        machine_state.wear += (
-            wear_load_factor * machine_state.load
-        )
-
-        machine_state.wear += (
-            wear_temp_factor *
-            max(0, machine_state.core_temperature - 70)
-        )
-
-        machine_state.wear = self._clamp(
-            machine_state.wear,
-            "wear"
-        )
-
-        return machine_state
-
-    def _update_core_temperature(
-        self,
-        machine_state: MachineState,
-        heating_factor: float = 5.0,
-        cooling_factor: float = 3.0
-    ):
-        cooling = (
-            machine_state.flow_rate *
-            machine_state.cooling_efficiency
-        )
-
-        machine_state.core_temperature += (
-            heating_factor * machine_state.load
-        )
-
-        machine_state.core_temperature -= (
-            cooling_factor * cooling
-        )
-
-        machine_state.core_temperature = self._clamp(
-            machine_state.core_temperature,
-            "core_temperature"
-        )
-
-        return machine_state
-
-    def _update_fan_speed(
-        self,
-        machine_state: MachineState
-    ):
-        machine_state.fan_speed = (
-            machine_state.core_temperature / 100
-        )
-
-        machine_state.fan_speed = self._clamp(
-            machine_state.fan_speed,
-            "fan_speed"
-        )
-
-        return machine_state
-
-    def _update_flow_rate(
-        self,
-        machine_state: MachineState
-    ):
-        machine_state.flow_rate = (
-            machine_state.cooling_efficiency *
-            machine_state.fan_speed
-        )
-
-        machine_state.flow_rate = self._clamp(
-            machine_state.flow_rate,
-            "flow_rate"
-        )
-
-        return machine_state
-
-    def _update_pressure(
-        self,
-        machine_state: MachineState
-    ):
-        machine_state.pressure = (
-            machine_state.flow_rate *
-            machine_state.cooling_efficiency
-        )
-
-        machine_state.pressure = self._clamp(
-            machine_state.pressure,
-            "pressure"
-        )
-
-        return machine_state
-
-    def _update_cooling_efficiency(
-        self,
-        machine_state: MachineState,
-        scenario_efficiency: float
-    ):
-        # Recompute from the scenario baseline, using wear at the start of this step.
-        machine_state.cooling_efficiency = scenario_efficiency * (
-            1 - self.cooling_wear_factor * machine_state.wear
-        )
-
-        machine_state.cooling_efficiency = self._clamp(
-            machine_state.cooling_efficiency,
-            "cooling_efficiency"
-        )
-
-        return machine_state
-
-    def update(self, machine_state: MachineState, scenario_efficiency: float):
-        machine_state = self._update_cooling_efficiency(
-            machine_state,
-            scenario_efficiency
-        )
-        machine_state = self._update_fan_speed(machine_state)
-        machine_state = self._update_flow_rate(machine_state)
-        machine_state = self._update_pressure(machine_state)
-        machine_state = self._update_core_temperature(machine_state)
-        machine_state = self._update_wear(machine_state)
-        machine_state = self._update_health(machine_state)
-
-        return machine_state
+        # Only motor losses heat this thermal mass; pump losses go elsewhere.
+        conductance = pump.MOTOR_THERMAL_CONDUCTANCE_W_K * ventilation_factor
+        equilibrium = pump.AMBIENT_TEMPERATURE_C + midpoint["motor_loss_w"] / conductance
+        thermal_decay = exp(-conductance * duration_seconds / pump.MOTOR_HEAT_CAPACITY_J_K)
+        state.temperature = equilibrium + (state.temperature - equilibrium) * thermal_decay
+        state.rotational_speed = new_speed
+        state.resistance_factor = resistance_factor
+        state.ventilation_factor = ventilation_factor
+        for name, value in point.items():
+            setattr(state, name, value)
+        return state

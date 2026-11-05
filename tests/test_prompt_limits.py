@@ -47,7 +47,7 @@ class PromptLimitsTests(unittest.TestCase):
         self.assertFalse(tool.run(['temperature'], n_points=10)['window']['truncated'])
 
     def test_sensor_validation(self):
-        for sensors in ([], ['temperature', 'vibration', 'pressure'], ['bad'],
+        for sensors in ([], ['temperature', 'rotational_speed', 'pressure'], ['bad'],
                         ['temperature', 'temperature'], 'temperature'):
             with self.subTest(sensors=sensors), self.assertRaises(ValueError):
                 HistoryTool(self.history).run(sensors)

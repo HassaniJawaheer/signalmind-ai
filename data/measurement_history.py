@@ -74,6 +74,11 @@ class MeasurementHistory:
         with self.path.open(encoding="utf-8") as stream:
             for line_number, line in enumerate(stream, 1):
                 record = json.loads(line)
+                if not all(sensor in record for sensor in SENSORS):
+                    raise ValueError(
+                        f"Incompatible measurement schema at line {line_number}; "
+                        "use a new five-sensor pump simulation."
+                    )
                 instant = parse_timestamp(record["timestamp"])
                 if previous is not None and instant <= previous:
                     raise ValueError(f"Non-increasing timestamp at line {line_number}.")

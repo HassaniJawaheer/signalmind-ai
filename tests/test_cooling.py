@@ -1,67 +1,55 @@
+from math import exp
 import unittest
-from unittest.mock import patch
 
-from config import settings
+from config import pump
 from data.simulation.dynamics import Dynamics
-from data.simulation.engine import Engine
-from data.simulation.state import MachineState
+from data.simulation.state import PumpState
 
 
 class CoolingTests(unittest.TestCase):
-    def test_combined_efficiency_drives_same_step_physics(self):
-        with patch.object(settings, 'COOLING_WEAR_FACTOR', 0.10):
-            dynamics = Dynamics()
-        state = MachineState(initial_wear=1.0, initial_core_temperature=50.0)
-        dynamics.update(state, scenario_efficiency=0.4)
-        self.assertAlmostEqual(state.cooling_efficiency, 0.36)
-        self.assertAlmostEqual(state.flow_rate, 0.36 * 0.5)
-        self.assertAlmostEqual(state.pressure, 0.36 * 0.5 * 0.36)
-        self.assertAlmostEqual(state.core_temperature, 50.0 - 3 * 0.36 * 0.5 * 0.36)
+    def setUp(self):
+        self.dynamics = Dynamics()
+        self.nominal = self.dynamics.operating_point(pump.NOMINAL_SPEED_RPM, 1.0)
 
-    def test_coefficient_and_wear_endpoints(self):
-        for factor, wear, expected in (
-            (0.10, 0.0, 0.7),
-            (0.10, 0.5, 0.665),
-            (0.10, 1.0, 0.63),
-            (0.0, 1.0, 0.7),
-            (0.20, 1.0, 0.56),
-            (1.0, 1.0, 0.0),
-        ):
-            with self.subTest(factor=factor, wear=wear):
-                with patch.object(settings, 'COOLING_WEAR_FACTOR', factor):
-                    dynamics = Dynamics()
-                state = MachineState(initial_wear=wear)
-                dynamics.update(state, scenario_efficiency=0.7)
-                self.assertAlmostEqual(state.cooling_efficiency, expected)
+    def test_motor_temperature_matches_energy_balance(self):
+        state = PumpState(rotational_speed=pump.NOMINAL_SPEED_RPM,
+                          temperature=pump.AMBIENT_TEMPERATURE_C)
+        duration = 100.0
+        self.dynamics.update(state, pump.NOMINAL_SPEED_RPM, 1.0, 1.0, duration)
+        losses = self.nominal['motor_loss_w']
+        conductance = pump.MOTOR_THERMAL_CONDUCTANCE_W_K
+        equilibrium = pump.AMBIENT_TEMPERATURE_C + losses / conductance
+        expected = equilibrium + (pump.AMBIENT_TEMPERATURE_C - equilibrium) * exp(
+            -conductance * duration / pump.MOTOR_HEAT_CAPACITY_J_K
+        )
+        self.assertAlmostEqual(state.temperature, expected)
+        self.assertGreater(state.temperature, pump.AMBIENT_TEMPERATURE_C)
+        self.assertLess(state.temperature, equilibrium)
 
-    def test_engine_recomputes_from_baseline_without_compounding(self):
-        with patch.object(settings, 'COOLING_WEAR_FACTOR', 0.10):
-            engine = Engine()
-        engine.state.wear = 0.5
-        with patch.object(engine.scenario, 'load', return_value=0.0):
-            with patch.object(engine.scenario, 'cooling_efficiency', side_effect=[0.7, 0.4]):
-                engine.step()
-                self.assertAlmostEqual(engine.state.cooling_efficiency, 0.665)
-                engine.step()
-                self.assertAlmostEqual(engine.state.cooling_efficiency, 0.38)
-        self.assertAlmostEqual(engine.internal_history[-1]['cooling_efficiency'], 0.38)
+    def test_ventilation_changes_only_thermal_behavior(self):
+        healthy = PumpState(rotational_speed=pump.NOMINAL_SPEED_RPM, temperature=50.0)
+        degraded = healthy.copy()
+        self.dynamics.update(healthy, pump.NOMINAL_SPEED_RPM, 1.0, 1.0, 100.0)
+        self.dynamics.update(degraded, pump.NOMINAL_SPEED_RPM, 1.0, 0.25, 100.0)
+        self.assertGreater(degraded.temperature, healthy.temperature)
+        for name in ('flow_rate', 'pressure', 'power_consumption', 'motor_loss_w'):
+            self.assertEqual(getattr(healthy, name), getattr(degraded, name))
 
-    def test_new_wear_affects_next_step(self):
-        with patch.object(settings, 'COOLING_WEAR_FACTOR', 0.10):
-            dynamics = Dynamics()
-        state = MachineState(initial_load=1.0, initial_wear=0.5)
-        dynamics.update(state, scenario_efficiency=1.0)
-        self.assertAlmostEqual(state.cooling_efficiency, 0.95)
-        self.assertGreater(state.wear, 0.5)
-        previous_wear = state.wear
-        dynamics.update(state, scenario_efficiency=1.0)
-        self.assertAlmostEqual(state.cooling_efficiency, 1 - 0.10 * previous_wear)
+    def test_stopped_motor_cools_towards_ambient(self):
+        state = PumpState(temperature=70.0)
+        self.dynamics.update(state, 0.0, 1.0, 1.0, 100.0)
+        self.assertLess(state.temperature, 70.0)
+        self.assertGreater(state.temperature, pump.AMBIENT_TEMPERATURE_C)
+        self.assertEqual(state.motor_loss_w, 0)
+        self.assertEqual(state.power_consumption, 0)
 
-    def test_invalid_coefficient(self):
-        for factor in (-0.1, 1.1, float('nan'), float('inf')):
-            with patch.object(settings, 'COOLING_WEAR_FACTOR', factor):
-                with self.assertRaises(ValueError):
-                    Dynamics()
+    def test_thermal_integration_is_exact_for_constant_speed_and_controls(self):
+        one_step = PumpState(rotational_speed=pump.NOMINAL_SPEED_RPM)
+        many_steps = one_step.copy()
+        self.dynamics.update(one_step, pump.NOMINAL_SPEED_RPM, 1.0, 0.5, 100)
+        for _ in range(100):
+            self.dynamics.update(many_steps, pump.NOMINAL_SPEED_RPM, 1.0, 0.5, 1)
+        self.assertAlmostEqual(one_step.temperature, many_steps.temperature, places=9)
 
 
 if __name__ == '__main__':

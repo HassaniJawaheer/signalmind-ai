@@ -1,74 +1,34 @@
-from config.settings import (
-    HIGH_TEMPERATURE_THRESHOLD,
-    HIGH_VIBRATION_THRESHOLD,
-    LOW_PRESSURE_THRESHOLD,
-    LOW_FLOW_RATE_THRESHOLD,
-    HIGH_TEMPERATURE_WEIGHT,
-    HIGH_VIBRATION_WEIGHT,
-    LOW_PRESSURE_WEIGHT,
-    LOW_FLOW_RATE_WEIGHT,
-    COOLING_COMBINATION_WEIGHT
-)
+from config import pump, settings
 
 
 def high_temperature(data):
-
-    if data["temperature"] > HIGH_TEMPERATURE_THRESHOLD:
-
-        return HIGH_TEMPERATURE_WEIGHT
-
-    return 0
-
-
-def high_vibration(data):
-
-    if data["vibration"] > HIGH_VIBRATION_THRESHOLD:
-
-        return HIGH_VIBRATION_WEIGHT
-
-    return 0
-
-
-def low_pressure(data):
-
-    if data["pressure"] < LOW_PRESSURE_THRESHOLD:
-
-        return LOW_PRESSURE_WEIGHT
-
+    if data["temperature"] > settings.HIGH_TEMPERATURE_THRESHOLD:
+        return settings.HIGH_TEMPERATURE_WEIGHT
     return 0
 
 
 def low_flow_rate(data):
-
-    if data["flow_rate"] < LOW_FLOW_RATE_THRESHOLD:
-
-        return LOW_FLOW_RATE_WEIGHT
-
+    speed = data["rotational_speed"]
+    if speed < settings.MIN_MONITORED_SPEED_RPM:
+        return 0
+    expected_flow = pump.NOMINAL_FLOW_M3_H * speed / pump.NOMINAL_SPEED_RPM
+    if data["flow_rate"] < expected_flow * settings.LOW_FLOW_RATIO_THRESHOLD:
+        return settings.LOW_FLOW_RATE_WEIGHT
     return 0
 
 
-def cooling_combination(data):
-
-    if (
-        data["temperature"] > HIGH_TEMPERATURE_THRESHOLD
-        and data["pressure"] < LOW_PRESSURE_THRESHOLD
-        and data["flow_rate"] < LOW_FLOW_RATE_THRESHOLD
-    ):
-
-        return COOLING_COMBINATION_WEIGHT
-
+def high_pressure(data):
+    speed = data["rotational_speed"]
+    if speed < settings.MIN_MONITORED_SPEED_RPM:
+        return 0
+    speed_ratio = speed / pump.NOMINAL_SPEED_RPM
+    expected_pressure = (
+        pump.WATER_DENSITY_KG_M3 * pump.GRAVITY_M_S2
+        * pump.NOMINAL_HEAD_M * speed_ratio ** 2 / 100000
+    )
+    if data["pressure"] > expected_pressure * settings.HIGH_PRESSURE_RATIO_THRESHOLD:
+        return settings.HIGH_PRESSURE_WEIGHT
     return 0
 
 
-RULES = [
-
-    high_temperature,
-
-    high_vibration,
-
-    low_pressure,
-
-    low_flow_rate,
-
-    cooling_combination
-]
+RULES = [high_temperature, low_flow_rate, high_pressure]

@@ -65,11 +65,11 @@ class MeasurementHistoryTests(unittest.TestCase):
 
     def test_tools_share_exact_window(self):
         args = dict(timestamp=self.rows[3]['timestamp'], n_points=3)
-        history = HistoryTool(self.history).run(["temperature", "vibration"], **args)
+        history = HistoryTool(self.history).run(["temperature", "rotational_speed"], **args)
         statistics = StatisticsTool(self.history).run(**args)
         self.assertEqual(history['timestamp'], [r['timestamp'] for r in self.rows[1:4]])
         self.assertEqual(statistics['window']['count'], 3)
-        for sensor in ("temperature", "vibration"):
+        for sensor in ("temperature", "rotational_speed"):
             self.assertAlmostEqual(statistics[sensor]['mean'], sum(history[sensor]) / 3)
             self.assertEqual(statistics[sensor]['delta'], history[sensor][-1] - history[sensor][0])
             self.assertNotIn('slope', statistics[sensor])
@@ -100,6 +100,14 @@ class MeasurementHistoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.history.append({**self.rows[-1], 'temperature': float('nan')})
         self.assertEqual(self.history.path.read_bytes(), initial)
+
+    def test_legacy_sensor_schema_is_rejected(self):
+        legacy = dict(self.rows[0])
+        legacy['machine_activity'] = legacy.pop('rotational_speed')
+        legacy['vibration'] = 0.5
+        self.history.path.write_text(json.dumps(legacy) + '\n')
+        with self.assertRaisesRegex(ValueError, 'Incompatible measurement schema'):
+            self.history.select()
 
     def test_corrupt_or_unordered_history_fails_explicitly(self):
         self.history.append(self.rows[0])

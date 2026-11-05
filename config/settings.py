@@ -7,27 +7,14 @@ MAX_HISTORY_SENSORS = 2
 MAX_ANALYSIS_POINTS = 1000
 PROMPT_DECIMAL_PLACES = 3
 
-# Maximum relative cooling loss at wear = 1 (0 disables the wear effect).
-COOLING_WEAR_FACTOR = 0.10
-
-HIGH_TEMPERATURE_THRESHOLD = 85.0
-
-HIGH_VIBRATION_THRESHOLD = 0.8
-
-LOW_PRESSURE_THRESHOLD = 0.25
-
-LOW_FLOW_RATE_THRESHOLD = 0.25
-
-HIGH_TEMPERATURE_WEIGHT = 2
-
-HIGH_VIBRATION_WEIGHT = 2
-
-LOW_PRESSURE_WEIGHT = 2
-
-LOW_FLOW_RATE_WEIGHT = 1
-
-COOLING_COMBINATION_WEIGHT = 3
-
+# Demonstration alarm settings, not industrial safety limits.
+HIGH_TEMPERATURE_THRESHOLD = 80.0  # motor casing, deg C
+MIN_MONITORED_SPEED_RPM = 600.0
+LOW_FLOW_RATIO_THRESHOLD = 0.75
+HIGH_PRESSURE_RATIO_THRESHOLD = 1.20
+HIGH_TEMPERATURE_WEIGHT = 5
+LOW_FLOW_RATE_WEIGHT = 3
+HIGH_PRESSURE_WEIGHT = 2
 ANOMALY_SCORE_THRESHOLD = 5
 SAVE_ALL_DETECTIONS = False
 
@@ -35,9 +22,8 @@ DETECTION_HISTORY_PATH = "experiments/outputs/jsonl/detection_history.jsonl"
 
 SENSORS = [
     "temperature",
-    "vibration",
     "power_consumption",
-    "machine_activity",
+    "rotational_speed",
     "pressure",
     "flow_rate",
 ]

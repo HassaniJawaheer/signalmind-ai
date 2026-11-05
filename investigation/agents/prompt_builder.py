@@ -1,4 +1,5 @@
 from investigation.prompts.context_formatter import ContextFormatter
+from investigation.prompts.pump_description import describe_pump
 from investigation.prompts.output_schema import OUTPUT_SCHEMA
 from investigation.prompts.system_prompt import SYSTEM_PROMPT
 from investigation.prompts.tool_formatter import ToolFormatter
@@ -17,6 +18,10 @@ class PromptBuilder:
         prompt += SYSTEM_PROMPT
 
         prompt += "\n\n"
+
+        prompt += describe_pump()
+
+        prompt += "\n"
 
         prompt += self.context_formatter.format(context)
 

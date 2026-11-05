@@ -13,9 +13,9 @@ def main():
         timestamp="2026-06-13T15:00:00+00:00",
         sensor_values={
             "temperature": 119.8,
-            "vibration": 0.99,
-            "pressure": 0.24,
-            "flow_rate": 0.51
+            "rotational_speed": 2900.0,
+            "pressure": 1.96,
+            "flow_rate": 12.0
         }
     )
 
